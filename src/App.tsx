@@ -8,7 +8,7 @@ import UserPage from './pages/UserPage';
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      <BrowserRouter basename="/scary-movie-project/">
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<HomePage />} />
