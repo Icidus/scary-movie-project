@@ -1,0 +1,97 @@
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import {
+    type User,
+    GoogleAuthProvider,
+    signInWithPopup,
+    signOut,
+    onAuthStateChanged
+} from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import type { UserProfile } from '@/types';
+
+const ALLOWED_EMAILS = [
+    "robert.e.oconnell@gmail.com",
+    "karima.rizk@gmail.com",
+    "lily.i.oconnell@gmail.com"
+];
+
+interface AuthContextType {
+    user: User | null;
+    userProfile: UserProfile | null;
+    loading: boolean;
+    signIn: () => Promise<void>;
+    logout: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+    const [user, setUser] = useState<User | null>(null);
+    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+            if (currentUser) {
+                // Check allowlist
+                if (!currentUser.email || !ALLOWED_EMAILS.includes(currentUser.email)) {
+                    await signOut(auth);
+                    alert("Access Denied: This app is for the O'Connell/Rizk family only 👻");
+                    return;
+                }
+
+                setUser(currentUser);
+
+                // Fetch or create user profile
+                const userRef = doc(db, 'users', currentUser.uid);
+                const userSnap = await getDoc(userRef);
+
+                if (userSnap.exists()) {
+                    setUserProfile(userSnap.data() as UserProfile);
+                } else {
+                    // Create new user profile
+                    const newProfile: UserProfile = {
+                        uid: currentUser.uid,
+                        displayName: currentUser.displayName,
+                        photoURL: currentUser.photoURL,
+                        email: currentUser.email,
+                        role: 'member',
+                        createdAt: serverTimestamp(),
+                    };
+                    await setDoc(userRef, newProfile);
+                    setUserProfile(newProfile);
+                }
+            } else {
+                setUser(null);
+                setUserProfile(null);
+            }
+            setLoading(false);
+        });
+
+        return unsubscribe;
+    }, []);
+
+    const signIn = async () => {
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(auth, provider);
+    };
+
+    const logout = async () => {
+        await signOut(auth);
+    };
+
+    return (
+        <AuthContext.Provider value={{ user, userProfile, loading, signIn, logout }}>
+            {children}
+        </AuthContext.Provider>
+    );
+}
+
+export function useAuth() {
+    const context = useContext(AuthContext);
+    if (context === undefined) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
+}

@@ -1,0 +1,94 @@
+// firestore.rules
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{db}/documents {
+
+    // --- FAMILY AUTHORIZATION ---
+    function isFamily() {
+      return request.auth != null &&
+        request.auth.token.email in [
+          "robert.e.oconnell@gmail.com",
+          "karima.rizk@gmail.com",
+          "lily.i.oconnell@gmail.com"
+        ];
+    }
+
+    function isAuthed() {
+      return request.auth != null;
+    }
+
+    function isOwner(userIdField) {
+      return isAuthed() && request.auth.uid == userIdField;
+    }
+
+    function validScore(n) {
+      return n is number && n >= 0 && n <= 10;
+    }
+
+    function validRatings(r) {
+      return r is map
+        && validScore(r.overall) && validScore(r.jump) && validScore(r.dread)
+        && validScore(r.gore) && validScore(r.atmosphere) && validScore(r.story)
+        && validScore(r.rewatch) && validScore(r.wtf) && validScore(r.cozy);
+    }
+
+    function validDateStr(d) {
+      return d is string && d.size() == 10 && d[4] == "-" && d[7] == "-";
+    }
+
+    // ---------------- USERS ----------------
+    match /users/{uid} {
+      allow read: if true;
+
+      // Only family members may create their profile,
+      // and only the profile owner can write it.
+      allow create: if isFamily() && isOwner(uid)
+        && request.resource.data.displayName is string;
+
+      allow update, delete: if isFamily() && isOwner(uid);
+    }
+
+    // ---------------- MOVIES ----------------
+    match /movies/{tmdbId} {
+      allow read: if true;
+
+      // Family can create movies.
+      allow create: if isFamily()
+        && request.resource.data.title is string
+        && request.resource.data.year is int
+        && request.resource.data.createdBy == request.auth.uid;
+
+      // Any family member can update movies (for shared metadata updates).
+      allow update: if isFamily();
+      
+      // Only creator can delete.
+      allow delete: if isFamily()
+        && resource.data.createdBy == request.auth.uid;
+    }
+
+    // ---------------- VIEWINGS ----------------
+    match /viewings/{id} {
+      allow read: if true;
+
+      // Only family can write, and only for themselves.
+      // Removed contentWarnings check as it is no longer used.
+      allow create: if isFamily()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.movieId is string
+        && validDateStr(request.resource.data.watchedAt)
+        && validRatings(request.resource.data.ratings)
+        && request.resource.data.toggles is map
+        && request.resource.data.toggles.wouldWatchAgain is bool
+        && request.resource.data.toggles.wouldRecommend is bool;
+
+      allow update: if isFamily()
+        && isOwner(resource.data.userId)
+        && validRatings(request.resource.data.ratings)
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.movieId == resource.data.movieId;
+
+      allow delete: if isFamily() && isOwner(resource.data.userId);
+    }
+  }
+}
