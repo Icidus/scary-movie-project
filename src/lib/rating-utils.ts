@@ -1,7 +1,8 @@
 import type { Ratings } from "@/types";
 
 export const RATING_KEYS: { key: keyof Ratings; label: string; color?: string }[] = [
-    { key: 'overall', label: '⭐ Overall Scare' },
+    { key: 'overall', label: '😱 Overall Scare' },
+    { key: 'enjoyment', label: '🍿 Overall Enjoyment' },
     { key: 'jump', label: '💥 Jump Scares' },
     { key: 'dread', label: '😬 Dread / Tension' },
     { key: 'gore', label: '🩸 Gore / Visceral Stuff' },
@@ -9,7 +10,7 @@ export const RATING_KEYS: { key: keyof Ratings; label: string; color?: string }[
     { key: 'story', label: '📚 Story' },
     { key: 'rewatch', label: '🔁 Rewatchability' },
     { key: 'wtf', label: '🤯 WTF Factor' },
-    { key: 'cozy', label: '🎃 Cozy / Fun' },
+    { key: 'cozy', label: '✨ Vibe / Fun Factor' },
 ];
 
 export function getFunLabel(key: keyof Ratings, value: number): string {
@@ -28,6 +29,19 @@ export function getFunLabel(key: keyof Ratings, value: number): string {
             if (v === 8) return "Actually affected my nervous system.";
             if (v === 9) return "Absolutely rattled.";
             return "Sleeping with a lamp on. And maybe the TV.";
+
+        case 'enjoyment':
+            if (v === 0) return "I did not have a good time.";
+            if (v === 1) return "Not for me.";
+            if (v === 2) return "A struggle to finish.";
+            if (v === 3) return "Some good moments, overall meh.";
+            if (v === 4) return "Fine, but forgettable.";
+            if (v === 5) return "Enjoyable enough.";
+            if (v === 6) return "Pretty fun.";
+            if (v === 7) return "Really liked it.";
+            if (v === 8) return "Loved it.";
+            if (v === 9) return "Instant favorite.";
+            return "All-timer. Recommending immediately.";
 
         case 'jump':
             if (v === 0) return "Zero booms. Zero bangs. Zero flinches.";
@@ -121,17 +135,17 @@ export function getFunLabel(key: keyof Ratings, value: number): string {
             return "“I need someone else to watch this immediately.”";
 
         case 'cozy':
-            if (v === 0) return "Zero vibes. Could be July.";
-            if (v === 1) return "One pumpkin in the background, maybe.";
-            if (v === 2) return "Light spooky fun.";
-            if (v === 3) return "Some seasonal flavor.";
-            if (v === 4) return "Mildly cozy; good with snacks.";
-            if (v === 5) return "Classic October mood.";
-            if (v === 6) return "Warm spooky nostalgia.";
-            if (v === 7) return "Prime Halloween-night material.";
-            if (v === 8) return "Peak cozy creepiness.";
-            if (v === 9) return "Blanket + hot chocolate tier.";
-            return "Feels like Halloween itself.";
+            if (v === 0) return "Zero vibe. Pure discomfort.";
+            if (v === 1) return "Bleak and not in a fun way.";
+            if (v === 2) return "Pretty harsh vibes.";
+            if (v === 3) return "A little fun, mostly grim.";
+            if (v === 4) return "Neutral vibe.";
+            if (v === 5) return "Good snack-movie energy.";
+            if (v === 6) return "Fun spooky vibe.";
+            if (v === 7) return "Great watch-with-friends energy.";
+            if (v === 8) return "Comfort horror vibes.";
+            if (v === 9) return "Cozy rewatch vibes.";
+            return "Maximum comfort horror.";
 
         default:
             return `${value}/10`;

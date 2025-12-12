@@ -28,7 +28,7 @@ service cloud.firestore {
 
     function validRatings(r) {
       return r is map
-        && validScore(r.overall) && validScore(r.jump) && validScore(r.dread)
+        && validScore(r.overall) && validScore(r.enjoyment) && validScore(r.jump) && validScore(r.dread)
         && validScore(r.gore) && validScore(r.atmosphere) && validScore(r.story)
         && validScore(r.rewatch) && validScore(r.wtf) && validScore(r.cozy);
     }

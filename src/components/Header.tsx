@@ -13,12 +13,12 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { Ghost, LogOut, User as UserIcon, Search, Loader2 } from 'lucide-react';
+import { Ghost, LogOut, User as UserIcon, Search, Loader2, X, Pencil, Home, BarChart3 } from 'lucide-react';
 import { searchMovies, type TMDBMovie, getPosterUrl } from '@/services/tmdb';
 import { useDebounce } from '@/hooks/useDebounce';
 
 export function Header() {
-    const { user, signIn, logout } = useAuth();
+    const { user, userProfile, signIn, logout } = useAuth();
     const navigate = useNavigate();
 
     // Search State
@@ -28,10 +28,12 @@ export function Header() {
     const [showDropdown, setShowDropdown] = useState(false);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
 
     const debouncedQuery = useDebounce(query, 500);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const observerTarget = useRef<HTMLDivElement>(null);
+    const searchInputRef = useRef<HTMLInputElement>(null);
 
     // Debounced Search Effect
     // 1. Initial Search (New Query)
@@ -82,7 +84,7 @@ export function Header() {
         };
 
         loadMoreMovies();
-    }, [page]); // Only trigger when page changes
+    }, [page, debouncedQuery]);
 
     // 3. Infinite Scroll Observer
     useEffect(() => {
@@ -126,8 +128,26 @@ export function Header() {
         }
     };
 
+    const handleCancelSearch = () => {
+        setQuery('');
+        setResults([]);
+        setShowDropdown(false);
+        setPage(1);
+        setHasMore(true);
+        searchInputRef.current?.blur();
+    };
+
+    const handleClearSearch = () => {
+        setQuery('');
+        setResults([]);
+        setShowDropdown(false);
+        setPage(1);
+        setHasMore(true);
+        searchInputRef.current?.focus();
+    };
+
     return (
-        <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+        <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 pt-[env(safe-area-inset-top)]">
             <div className="container flex h-16 items-center justify-between px-4">
                 <div className="flex items-center gap-6">
                     <Link to="/" className="flex items-center gap-3 font-bold text-xl h-full group">
@@ -141,32 +161,86 @@ export function Header() {
                         </span>
                     </Link>
 
-                    <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
-                        <Link to="/" className="transition-colors hover:text-foreground/80">Home</Link>
+                    <nav className="flex items-center gap-1 text-sm font-medium">
+                        <Button asChild variant="ghost" size="icon" className="h-9 w-9 rounded-full" aria-label="Home">
+                            <Link to="/">
+                                <Home className="h-5 w-5" />
+                            </Link>
+                        </Button>
+                        <Button asChild variant="ghost" size="icon" className="h-9 w-9 rounded-full" aria-label="Stats">
+                            <Link to="/stats">
+                                <BarChart3 className="h-5 w-5" />
+                            </Link>
+                        </Button>
                     </nav>
                 </div>
 
                 <div className="flex items-center gap-2 md:gap-4">
                     {/* Search Bar - Visible on Mobile now */}
-                    <div className="relative w-full max-w-sm" ref={dropdownRef}>
-                        <div className="relative">
-                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                type="search"
-                                placeholder="Search..."
-                                className="pl-9 h-9 w-[150px] sm:w-[200px] lg:w-[300px] transition-all bg-muted/50 focus:bg-background focus:w-[180px] sm:focus:w-[250px] lg:focus:w-[300px]"
-                                value={query}
-                                onChange={(e) => setQuery(e.target.value)}
-                                onFocus={() => { if (results.length > 0) setShowDropdown(true); }}
-                            />
-                            {isSearching && (
-                                <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
+                    <div className="relative w-full max-w-sm" ref={dropdownRef} role="search" aria-label="Movie search">
+                        <div className="flex items-center gap-2">
+                            <div className="relative flex-1">
+                                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                    ref={searchInputRef}
+                                    type="search"
+                                    placeholder="Search movies & TV"
+                                    enterKeyHint="search"
+                                    autoCapitalize="none"
+                                    autoCorrect="off"
+                                    spellCheck={false}
+                                    className="h-10 w-full rounded-full border-transparent bg-muted/60 pl-9 pr-10 shadow-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/20"
+                                    value={query}
+                                    onChange={(e) => setQuery(e.target.value)}
+                                    onFocus={() => {
+                                        setIsSearchFocused(true);
+                                        if (results.length > 0) setShowDropdown(true);
+                                    }}
+                                    onBlur={() => setIsSearchFocused(false)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Escape') {
+                                            e.preventDefault();
+                                            handleCancelSearch();
+                                        }
+                                    }}
+                                />
+
+                                {isSearching ? (
+                                    <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                                ) : query && isSearchFocused ? (
+                                    <button
+                                        type="button"
+                                        onMouseDown={(e) => e.preventDefault()}
+                                        onClick={handleClearSearch}
+                                        aria-label="Clear search"
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                ) : null}
+                            </div>
+
+                            {(isSearchFocused || query) && (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onClick={handleCancelSearch}
+                                    className="h-10 rounded-full px-3"
+                                >
+                                    Cancel
+                                </Button>
                             )}
                         </div>
 
                         {/* Search Portal Overlay - FIXED POSITIONING */}
                         {showDropdown && results.length > 0 && (
-                            <div className="fixed top-16 left-0 right-0 h-[calc(100vh-4rem)] bg-background/80 backdrop-blur-sm z-50 flex justify-center items-start pt-10 animate-in fade-in duration-200">
+                            <div
+                                className="fixed top-[calc(4rem+env(safe-area-inset-top))] left-0 right-0 h-[calc(100vh-4rem-env(safe-area-inset-top))] bg-background/80 backdrop-blur-sm z-50 flex justify-center items-start pt-10 animate-in fade-in duration-200"
+                                onMouseDown={(e) => {
+                                    if (e.target === e.currentTarget) setShowDropdown(false);
+                                }}
+                            >
                                 <div className="w-[90vw] max-w-5xl bg-popover border border-primary/20 shadow-2xl rounded-2xl p-8 overflow-y-auto max-h-[80vh]">
                                     <div className="flex items-center gap-2 mb-6 text-primary font-bold tracking-widest uppercase text-xs opacity-70 border-b border-primary/10 pb-2">
                                         <span className="animate-pulse">🔮</span> The Portal Opens...
@@ -243,8 +317,11 @@ export function Header() {
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                                     <Avatar className="h-8 w-8">
-                                        <AvatarImage src={user.photoURL || ''} alt={user.displayName || ''} />
-                                        <AvatarFallback>{user.displayName?.[0] || 'U'}</AvatarFallback>
+                                        <AvatarImage
+                                            src={userProfile ? (userProfile.photoURL ?? '') : (user.photoURL ?? '')}
+                                            alt={(userProfile?.displayName ?? user.displayName) ?? ''}
+                                        />
+                                        <AvatarFallback>{((userProfile?.displayName ?? user.displayName) ?? 'U')[0]}</AvatarFallback>
                                     </Avatar>
                                 </Button>
                             </DropdownMenuTrigger>
@@ -255,10 +332,15 @@ export function Header() {
                                         <span className="hidden md:block">Dad & Lily’s Horror Log <span className="text-xs bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 bg-clip-text text-transparent font-bold tracking-wide drop-shadow-[0_0_3px_rgba(236,72,153,0.5)] ml-1">(and sometimes Mom)</span></span>
                                     </Link>            </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => navigate(`/u/${user.uid}?edit=1`)}>
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    <span>Edit Profile</span>
+                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => navigate(`/u/${user.uid}`)}>
                                     <UserIcon className="mr-2 h-4 w-4" />
                                     <span>Your History</span>
                                 </DropdownMenuItem>
+                                <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={logout}>
                                     <LogOut className="mr-2 h-4 w-4" />
                                     <span>Log out</span>

@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ViewingsService } from '@/services/viewings';
 import { MoviesService } from '@/services/movies';
 import { type TMDBMovie } from '@/services/tmdb';
-import { type Ratings, type Movie } from '@/types';
+import { type Ratings, type Movie, type Viewing } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
@@ -18,17 +18,26 @@ interface ViewingFormProps {
         episodeNumber: number;
         title: string;
     };
+    existingViewing?: Viewing;
     trigger?: React.ReactNode;
     onSuccess: () => void;
 }
 
 const INITIAL_RATINGS: Ratings = {
-    overall: 5, jump: 5, dread: 5, gore: 5, atmosphere: 5,
-    story: 5, rewatch: 5, wtf: 5, cozy: 5
+    overall: 5,
+    enjoyment: 5,
+    jump: 5,
+    dread: 5,
+    gore: 5,
+    atmosphere: 5,
+    story: 5,
+    rewatch: 5,
+    wtf: 5,
+    cozy: 5
 };
 
 export function ViewingForm(props: ViewingFormProps) {
-    const { movie, episode, onSuccess } = props;
+    const { movie, episode, onSuccess, existingViewing } = props;
     const { user } = useAuth();
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -38,6 +47,26 @@ export function ViewingForm(props: ViewingFormProps) {
     const [notes, setNotes] = useState('');
     const [wouldWatchAgain, setWouldWatchAgain] = useState(false);
     const [wouldRecommend, setWouldRecommend] = useState(false);
+
+    useEffect(() => {
+        if (!open) return;
+
+        if (existingViewing) {
+            setRatings({ ...INITIAL_RATINGS, ...existingViewing.ratings });
+            setWatchedAt(existingViewing.watchedAt);
+            setNotes(existingViewing.notes || '');
+            setWouldWatchAgain(!!existingViewing.toggles?.wouldWatchAgain);
+            setWouldRecommend(!!existingViewing.toggles?.wouldRecommend);
+            return;
+        }
+
+        // New entry
+        setRatings(INITIAL_RATINGS);
+        setWatchedAt(new Date().toISOString().split('T')[0]);
+        setNotes('');
+        setWouldWatchAgain(false);
+        setWouldRecommend(false);
+    }, [open, existingViewing]);
 
     const handleRatingChange = (key: keyof Ratings, value: number) => {
         setRatings(prev => ({ ...prev, [key]: value }));
@@ -68,7 +97,8 @@ export function ViewingForm(props: ViewingFormProps) {
                 ? `tv_${movie.tmdbId}`
                 : movie.tmdbId;
 
-            await ViewingsService.add({
+            await ViewingsService.upsert({
+                id: existingViewing?.id,
                 movieId: persistenceId,
                 userId: user.uid,
                 watchedAt,
@@ -95,12 +125,13 @@ export function ViewingForm(props: ViewingFormProps) {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                {props.trigger || <Button>Log Viewing</Button>}
+                {props.trigger || <Button>{existingViewing ? 'Edit Rating' : 'Log Viewing'}</Button>}
             </DialogTrigger>
-            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-background/95 backdrop-blur-xl border-secondary/20">
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-background/95 backdrop-blur-xl border-secondary/20 sm:rounded-lg max-sm:inset-x-0 max-sm:bottom-0 max-sm:top-auto max-sm:left-0 max-sm:right-0 max-sm:translate-x-0 max-sm:translate-y-0 max-sm:max-w-none max-sm:rounded-t-2xl max-sm:rounded-b-none max-sm:border-x-0 max-sm:border-b-0 max-sm:p-4 max-sm:pb-[calc(1rem+env(safe-area-inset-bottom))]">
+                <div className="mx-auto mb-2 h-1.5 w-12 rounded-full bg-muted" />
                 <DialogHeader>
                     <DialogTitle>
-                        {props.episode ? `Log: ${props.episode.title}` : 'Log a Viewing'}
+                        {props.episode ? `${existingViewing ? 'Edit' : 'Log'}: ${props.episode.title}` : (existingViewing ? 'Edit Your Rating' : 'Log a Viewing')}
                         {props.episode && <span className="block text-sm font-normal text-muted-foreground mt-1">S{props.episode.seasonNumber} • E{props.episode.episodeNumber}</span>}
                     </DialogTitle>
                 </DialogHeader>
@@ -144,7 +175,7 @@ export function ViewingForm(props: ViewingFormProps) {
                     <div className="flex justify-end gap-2">
                         <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
                         <Button type="submit" disabled={loading}>
-                            {loading ? 'Saving...' : 'Save Viewing'}
+                            {loading ? 'Saving...' : (existingViewing ? 'Save Changes' : 'Save Viewing')}
                         </Button>
                     </div>
 

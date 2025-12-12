@@ -1,15 +1,17 @@
 
-import { useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { MoviesService } from '@/services/movies';
 import { ViewingsService } from '@/services/viewings';
 import type { Movie, Viewing, Ratings } from '@/types';
 import { getPosterUrl } from '@/services/tmdb';
 import { ViewingForm } from '@/components/ViewingForm';
+import type { TMDBEpisode, TMDBSeason } from '@/services/tmdb';
 
 import { RatingSliders } from '@/components/RatingSliders';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UsersService } from '@/services/users';
@@ -17,6 +19,8 @@ import type { UserProfile } from '@/types';
 import { UserBadge } from '@/components/UserBadge';
 import { FearFingerprint } from '@/components/FearFingerprint';
 import { getFunLabel, RATING_KEYS } from '@/lib/rating-utils';
+
+import { ChevronDown } from 'lucide-react';
 
 import { useLocation } from 'react-router-dom';
 
@@ -36,11 +40,14 @@ export default function MoviePage() {
 
     // TV Specific State
     const [activeSeason, setActiveSeason] = useState<number | null>(null);
-    const [seasonData, setSeasonData] = useState<any>(null); // Cache season details
+    const [seasonData, setSeasonData] = useState<TMDBSeason | null>(null); // Cache season details
     const [loadingSeason, setLoadingSeason] = useState(false);
 
-    const fetchData = async () => {
+    const [openLogId, setOpenLogId] = useState<string | null>(null);
+
+    const fetchData = useCallback(async () => {
         if (!tmdbId) return;
+        setLoading(true);
         try {
             // Fetch directly like headers does: use upsert logic or getMovie
             // Let's rely on MoviesService to potentially refresh it? 
@@ -128,29 +135,53 @@ export default function MoviePage() {
                 }
             }
 
-            // Fetch Viewings (using docId used for storage)
-            const viewingsData = await ViewingsService.listByMovie(docId);
-            setViewings(viewingsData);
-
-            // Fetch User Lookups for Chart Labels
-            const uids = Array.from(new Set(viewingsData.map(v => v.userId)));
-            const profiles: Record<string, UserProfile> = {};
-            await Promise.all(uids.map(async (uid) => {
-                const p = await UsersService.getProfile(uid);
-                if (p) profiles[uid] = p;
-            }));
-            setUserProfiles(profiles);
-
         } catch (error) {
             console.error("Failed to fetch movie", error);
         } finally {
             setLoading(false);
         }
-    }
+    }, [docId, isTv, tmdbId]);
 
     useEffect(() => {
         fetchData();
-    }, [tmdbId]);
+    }, [fetchData]);
+
+    useEffect(() => {
+        // Reset open accordion item when navigating to a different movie/show
+        setOpenLogId(null);
+    }, [docId]);
+
+    // Real-time viewings (reviews) updates
+    useEffect(() => {
+        if (!docId) return;
+        const unsubscribe = ViewingsService.subscribeByMovie(docId, (viewingsData: Viewing[]) => {
+            setViewings(viewingsData);
+        });
+        return () => unsubscribe();
+    }, [docId]);
+
+    // Fetch missing user profiles for labels/badges as viewings update
+    useEffect(() => {
+        if (viewings.length === 0) return;
+        const uids = Array.from(new Set(viewings.map(v => v.userId)));
+        const missing = uids.filter(uid => !userProfiles[uid]);
+        if (missing.length === 0) return;
+
+        let cancelled = false;
+        (async () => {
+            const profiles: Record<string, UserProfile> = {};
+            await Promise.all(missing.map(async (uid) => {
+                const p = await UsersService.getProfile(uid);
+                if (p) profiles[uid] = p;
+            }));
+            if (cancelled) return;
+            setUserProfiles(prev => ({ ...prev, ...profiles }));
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [viewings, userProfiles]);
 
     // Fetch Season Details when activeSeason changes
     useEffect(() => {
@@ -170,7 +201,7 @@ export default function MoviePage() {
         };
 
         fetchSeason();
-    }, [activeSeason, movie?.tmdbId]);
+    }, [activeSeason, movie]);
 
     const averageRatings = useMemo(() => {
         if (viewings.length === 0) return null;
@@ -182,6 +213,11 @@ export default function MoviePage() {
         });
         return avgs;
     }, [viewings]);
+
+    const myViewing = useMemo(() => {
+        if (!user) return undefined;
+        return viewings.find(v => v.userId === user.uid && v.seasonNumber == null && v.episodeNumber == null);
+    }, [user, viewings]);
 
     if (loading) return <div className="p-20 text-center animate-pulse">Summoning details...</div>;
     if (!movie) return <div className="p-20 text-center">Movie not found in the archives.</div>;
@@ -230,14 +266,174 @@ export default function MoviePage() {
                         </div>
 
                         <div className="mt-4 md:mt-6 flex justify-center md:justify-start">
-                            {user && <ViewingForm movie={movie} onSuccess={fetchData} />}
+                            {user && <ViewingForm movie={movie} existingViewing={myViewing} onSuccess={fetchData} />}
                             {!user && <p className="text-white/60 text-xs md:text-sm">Sign in to log this movie.</p>}
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="container mx-auto px-4 mt-8 md:mt-12 max-w-6xl space-y-12">
+            <div className="container mx-auto px-4 mt-6 md:mt-10 max-w-6xl space-y-10">
+
+                {/* Viewing Log (moved up for PWA) */}
+                <section className="space-y-4">
+                    <div className="flex items-center justify-between border-b border-primary/20 pb-2">
+                        <h2 className="text-2xl font-bold flex items-center gap-2">
+                            📝 Viewing Log
+                        </h2>
+                        {user && <ViewingForm movie={movie} existingViewing={myViewing} onSuccess={fetchData} />}
+                    </div>
+
+                    {viewings.length === 0 ? (
+                        <p className="text-muted-foreground py-4">No logs yet. Be the first to survive it.</p>
+                    ) : (
+                        <Tabs defaultValue="comparison" className="w-full">
+                            <TabsList className="grid w-full grid-cols-2 mb-4">
+                                <TabsTrigger value="comparison">⚡️ Comparison</TabsTrigger>
+                                <TabsTrigger value="individual">👤 Individual Logs</TabsTrigger>
+                            </TabsList>
+
+                            <TabsContent value="comparison" className="mt-0 space-y-8 overflow-hidden">
+                                <Card className="bg-card/30 border-dashed overflow-hidden">
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                                            <span>The Fear Fingerprint</span>
+                                            <Badge variant="outline" className="text-[10px] font-normal">VS Mode</Badge>
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <FearFingerprint
+                                            datasets={viewings.map((v, i) => {
+                                                const name = userProfiles[v.userId]?.displayName || `User ${v.userId.slice(0, 3)}`;
+                                                return {
+                                                    label: name,
+                                                    ratings: v.ratings,
+                                                    color: ['#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#3b82f6'][i % 5]
+                                                };
+                                            })}
+                                            height={300}
+                                        />
+                                        <div className="flex flex-wrap gap-2 justify-center mt-4">
+                                            {viewings.map((v, i) => {
+                                                const color = ['#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#3b82f6'][i % 5];
+                                                const name = userProfiles[v.userId]?.displayName || `User ${v.userId.slice(0, 3)}`;
+                                                return (
+                                                    <div key={v.id} className="flex items-center gap-1.5 text-xs bg-secondary/30 px-2 py-1 rounded-full">
+                                                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                                                        <span className="font-medium">{name}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                {averageRatings && (
+                                    <div className="space-y-4 pt-4 border-t border-primary/20">
+                                        <h3 className="font-bold text-lg flex items-center gap-2">
+                                            <span>📊</span> Average Community Ratings
+                                        </h3>
+                                        <RatingSliders ratings={averageRatings} onChange={() => { }} readOnly />
+                                    </div>
+                                )}
+                            </TabsContent>
+
+                            <TabsContent value="individual" className="space-y-4 mt-0">
+                                {viewings.map((v) => (
+                                    <Card key={v.id} className="bg-card/50 overflow-hidden">
+                                        <CardHeader
+                                            className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0 pb-2 cursor-pointer select-none"
+                                            onClick={() => setOpenLogId(prev => (prev === v.id ? null : (v.id || null)))}
+                                            role="button"
+                                            aria-expanded={openLogId === v.id}
+                                        >
+                                            <div className="flex flex-col gap-1 min-w-0">
+                                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
+                                                    <div className="font-bold font-mono text-base text-primary shrink-0">{v.watchedAt}</div>
+                                                    <span className="text-sm text-muted-foreground flex items-center gap-1 min-w-0">
+                                                        <span className="shrink-0">by</span> <UserBadge userId={v.userId} className="text-foreground min-w-0" />
+                                                    </span>
+                                                </div>
+                                                <div className="text-xs text-muted-foreground truncate">
+                                                    <span className="font-mono">Scare {v.ratings.overall.toFixed(1)}</span>
+                                                    {typeof v.ratings.enjoyment === 'number' && (
+                                                        <>
+                                                            <span className="mx-1">•</span>
+                                                            <span className="font-mono">Enjoy {v.ratings.enjoyment.toFixed(1)}</span>
+                                                        </>
+                                                    )}
+                                                    {v.notes && (
+                                                        <>
+                                                            <span className="mx-2">—</span>
+                                                            <span className="italic">“{v.notes}”</span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                {v.toggles.wouldWatchAgain && <Badge variant="outline" className="text-xs">Rewatchable</Badge>}
+                                                {v.toggles.wouldRecommend && <Badge variant="default" className="text-xs">Recommended</Badge>}
+
+                                                {user && v.userId === user.uid && (
+                                                    <div onClick={(e) => e.stopPropagation()}>
+                                                        <ViewingForm
+                                                            movie={movie}
+                                                            existingViewing={v}
+                                                            onSuccess={fetchData}
+                                                            trigger={<Button size="sm" variant="outline">Edit</Button>}
+                                                        />
+                                                    </div>
+                                                )}
+
+                                                <ChevronDown
+                                                    className={
+                                                        openLogId === v.id
+                                                            ? 'h-4 w-4 text-muted-foreground transition-transform rotate-180'
+                                                            : 'h-4 w-4 text-muted-foreground transition-transform'
+                                                    }
+                                                />
+                                            </div>
+                                        </CardHeader>
+                                        {openLogId === v.id && (
+                                            <CardContent className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                                                {v.notes && <p className="text-sm md:text-base border-l-2 border-primary/50 pl-4 italic text-foreground/80">"{v.notes}"</p>}
+
+                                                {/* Mini Fingerprint for individual viewing - Stacked Layout */}
+                                                <div className="mt-4 pt-4 border-t border-secondary/20">
+                                                    <p className="text-sm font-bold text-muted-foreground mb-4 uppercase text-center sm:text-left">Individual Stats</p>
+                                                    <div className="flex flex-col gap-6">
+                                                        {/* Chart on top, wider */}
+                                                        <div className="w-full h-64 sm:h-72 bg-background/20 rounded-lg p-2">
+                                                            <FearFingerprint
+                                                                datasets={[{ label: 'Rating', ratings: v.ratings, color: '#a855f7' }]}
+                                                                height={240}
+                                                                showLegend={false}
+                                                            />
+                                                        </div>
+                                                        {/* Detailed List below */}
+                                                        <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-base px-2">
+                                                            {RATING_KEYS.map(({ key, label }) => (
+                                                                <div key={key} className="flex flex-col border-b border-primary/10 pb-3 last:border-0 break-inside-avoid">
+                                                                    <div className="flex justify-between items-center mb-1">
+                                                                        <span className="font-bold text-muted-foreground text-sm sm:text-base">{label}</span>
+                                                                        <span className="font-mono font-black text-xl sm:text-2xl text-primary">{v.ratings[key]}</span>
+                                                                    </div>
+                                                                    <p className="text-sm text-muted-foreground italic overflow-hidden text-ellipsis whitespace-nowrap">
+                                                                        {getFunLabel(key, v.ratings[key])}
+                                                                    </p>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </CardContent>
+                                        )}
+                                    </Card>
+                                ))}
+                            </TabsContent>
+                        </Tabs>
+                    )}
+                </section>
 
                 {/* OVERVIEW & CAST */}
                 <div className="grid md:grid-cols-3 gap-12">
@@ -313,15 +509,15 @@ export default function MoviePage() {
                                                             alt={seasonData.name}
                                                         />
                                                     )}
-                                                    <div className="flex-1">
+                                                    <div className="flex-1 min-w-0">
                                                         <h3 className="font-bold text-xl">{seasonData.name}</h3>
-                                                        <p className="text-sm text-muted-foreground mt-1">{seasonData.overview}</p>
+                                                        <p className="text-sm text-muted-foreground mt-1 break-words line-clamp-3">{seasonData.overview}</p>
                                                         <p className="text-xs font-mono mt-2 text-primary">{seasonData.episodes?.length} Episodes • {seasonData.air_date?.split('-')[0]}</p>
                                                     </div>
                                                 </div>
 
                                                 <div className="grid gap-3">
-                                                    {seasonData.episodes?.map((episode: any) => (
+                                                    {seasonData.episodes?.map((episode: TMDBEpisode) => (
                                                         <div key={episode.id} className="flex flex-col sm:flex-row gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-card/20 hover:bg-card/40 transition-colors border border-transparent hover:border-primary/20 group">
                                                             <div className="flex-shrink-0 w-full sm:w-40 md:w-48 aspect-video bg-black/40 rounded overflow-hidden relative">
                                                                 {episode.still_path ? (
@@ -335,9 +531,11 @@ export default function MoviePage() {
                                                             </div>
 
                                                             <div className="flex-1 min-w-0">
-                                                                <div className="flex justify-between items-start gap-2">
-                                                                    <h4 className="text-base md:text-lg font-bold truncate">{episode.name}</h4>
-                                                                    <span className="text-sm font-mono opacity-50 whitespace-nowrap">{episode.runtime}m</span>
+                                                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 sm:gap-2">
+                                                                    <h4 className="text-base md:text-lg font-bold break-words sm:truncate">{episode.name}</h4>
+                                                                    {episode.runtime != null && (
+                                                                        <span className="text-sm font-mono opacity-50 sm:whitespace-nowrap">{episode.runtime}m</span>
+                                                                    )}
                                                                 </div>
                                                                 <p className="text-sm md:text-base text-muted-foreground line-clamp-2 mt-1 mb-2">{episode.overview}</p>
 
@@ -354,6 +552,7 @@ export default function MoviePage() {
                                                                                 episodeNumber: episode.episode_number,
                                                                                 title: episode.name
                                                                             }}
+                                                                            existingViewing={viewings.find(v => v.userId === user.uid && v.seasonNumber === episode.season_number && v.episodeNumber === episode.episode_number)}
                                                                             trigger={
                                                                                 <button className="text-sm font-bold text-primary hover:text-primary/80 flex items-center gap-1 bg-primary/10 px-3 py-2 rounded-full transition-colors">
                                                                                     ✨ Log Episode
@@ -375,134 +574,31 @@ export default function MoviePage() {
                                 </Tabs>
                             </section>
                         )}
-
-                        {/* Viewing Log */}
-                        <section className="space-y-4">
-                            <div className="flex items-center justify-between border-b border-primary/20 pb-2">
-                                <h2 className="text-2xl font-bold flex items-center gap-2">
-                                    📝 Viewing Log
-                                </h2>
-                                {user && <ViewingForm movie={movie} onSuccess={fetchData} />}
-                            </div>
-
-                            {viewings.length === 0 ? (
-                                <p className="text-muted-foreground py-4">No logs yet. Be the first to survive it.</p>
-                            ) : (
-                                <Tabs defaultValue="comparison" className="w-full">
-                                    <TabsList className="grid w-full grid-cols-2 mb-4">
-                                        <TabsTrigger value="comparison">⚡️ Comparison</TabsTrigger>
-                                        <TabsTrigger value="individual">👤 Individual Logs</TabsTrigger>
-                                    </TabsList>
-
-                                    <TabsContent value="comparison" className="mt-0 space-y-8 overflow-hidden">
-                                        <Card className="bg-card/30 border-dashed overflow-hidden">
-                                            <CardHeader className="pb-2">
-                                                <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground flex items-center justify-between">
-                                                    <span>The Fear Fingerprint</span>
-                                                    <Badge variant="outline" className="text-[10px] font-normal">VS Mode</Badge>
-                                                </CardTitle>
-                                            </CardHeader>
-                                            <CardContent>
-                                                <FearFingerprint
-                                                    datasets={viewings.map((v, i) => {
-                                                        const name = userProfiles[v.userId]?.displayName || `User ${v.userId.slice(0, 3)}`;
-                                                        return {
-                                                            label: name,
-                                                            ratings: v.ratings,
-                                                            color: ['#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#3b82f6'][i % 5]
-                                                        };
-                                                    })}
-                                                    height={300}
-                                                />
-                                                <div className="flex flex-wrap gap-2 justify-center mt-4">
-                                                    {viewings.map((v, i) => {
-                                                        const color = ['#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#3b82f6'][i % 5];
-                                                        const name = userProfiles[v.userId]?.displayName || `User ${v.userId.slice(0, 3)}`;
-                                                        return (
-                                                            <div key={v.id} className="flex items-center gap-1.5 text-xs bg-secondary/30 px-2 py-1 rounded-full">
-                                                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-                                                                <span className="font-medium">{name}</span>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-
-                                        {averageRatings && (
-                                            <div className="space-y-4 pt-4 border-t border-primary/20">
-                                                <h3 className="font-bold text-lg flex items-center gap-2">
-                                                    <span>📊</span> Average Community Ratings
-                                                </h3>
-                                                <RatingSliders ratings={averageRatings} onChange={() => { }} readOnly />
-                                            </div>
-                                        )}
-                                    </TabsContent>
-
-                                    <TabsContent value="individual" className="space-y-4 mt-0">
-                                        {viewings.map((v) => (
-                                            <Card key={v.id} className="bg-card/50 overflow-hidden">
-                                                <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0 pb-2">
-                                                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                                                        <div className="font-bold font-mono text-base text-primary">{v.watchedAt}</div>
-                                                        <span className="text-sm text-muted-foreground flex items-center gap-1">
-                                                            by <UserBadge userId={v.userId} className="text-foreground" />
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex gap-2">
-                                                        {v.toggles.wouldWatchAgain && <Badge variant="outline" className="text-xs">Rewatchable</Badge>}
-                                                        {v.toggles.wouldRecommend && <Badge variant="default" className="text-xs">Recommended</Badge>}
-                                                    </div>
-                                                </CardHeader>
-                                                <CardContent className="space-y-4">
-                                                    {v.notes && <p className="text-sm md:text-base border-l-2 border-primary/50 pl-4 italic text-foreground/80">"{v.notes}"</p>}
-
-                                                    {/* Mini Fingerprint for individual viewing - Stacked Layout */}
-                                                    <div className="mt-4 pt-4 border-t border-secondary/20">
-                                                        <p className="text-sm font-bold text-muted-foreground mb-4 uppercase text-center sm:text-left">Individual Stats</p>
-                                                        <div className="flex flex-col gap-6">
-                                                            {/* Chart on top, wider */}
-                                                            <div className="w-full h-64 sm:h-72 bg-background/20 rounded-lg p-2">
-                                                                <FearFingerprint
-                                                                    datasets={[{ label: 'Rating', ratings: v.ratings, color: '#a855f7' }]}
-                                                                    height={240}
-                                                                    showLegend={false}
-                                                                />
-                                                            </div>
-                                                            {/* Detailed List below */}
-                                                            <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-base px-2">
-                                                                {RATING_KEYS.map(({ key, label }) => (
-                                                                    <div key={key} className="flex flex-col border-b border-primary/10 pb-3 last:border-0 break-inside-avoid">
-                                                                        <div className="flex justify-between items-center mb-1">
-                                                                            <span className="font-bold text-muted-foreground text-sm sm:text-base">{label}</span>
-                                                                            <span className="font-mono font-black text-xl sm:text-2xl text-primary">{v.ratings[key]}</span>
-                                                                        </div>
-                                                                        <p className="text-sm text-muted-foreground italic overflow-hidden text-ellipsis whitespace-nowrap">
-                                                                            {getFunLabel(key, v.ratings[key])}
-                                                                        </p>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
-                                        ))}
-                                    </TabsContent>
-                                </Tabs>
-                            )}
-                        </section>
                     </div>
 
 
                     {/* Sidebar Stats */}
                     <div className="space-y-8">
                         <div className="bg-secondary/10 p-6 rounded-xl border border-secondary/20 text-center space-y-2 sticky top-24">
-                            <h4 className="font-bold text-base md:text-lg text-secondary">Is it scary?</h4>
-                            <p className="text-3xl md:text-4xl font-black">
-                                {averageRatings?.overall ? averageRatings.overall.toFixed(1) : "?"}/10
-                            </p>
-                            <p className="text-sm text-muted-foreground">Based on {viewings.length} survivor logs</p>
+                            <h4 className="font-bold text-base md:text-lg text-secondary">Quick Stats</h4>
+
+                            <div className="space-y-3">
+                                <div>
+                                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Scare</p>
+                                    <p className="text-3xl md:text-4xl font-black">
+                                        {averageRatings?.overall ? averageRatings.overall.toFixed(1) : "?"}/10
+                                    </p>
+                                </div>
+
+                                <div className="pt-2 border-t border-secondary/20">
+                                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Enjoyment</p>
+                                    <p className="text-2xl md:text-3xl font-black text-primary">
+                                        {averageRatings?.enjoyment ? averageRatings.enjoyment.toFixed(1) : "?"}/10
+                                    </p>
+                                </div>
+                            </div>
+
+                            <p className="text-sm text-muted-foreground">Based on {viewings.length} logs</p>
                         </div>
                     </div>
                 </div>

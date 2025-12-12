@@ -56,6 +56,7 @@ export interface Episode {
 
 export interface Ratings {
     overall: number;
+    enjoyment: number;
     jump: number;
     dread: number;
     gore: number;

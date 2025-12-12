@@ -5,6 +5,7 @@ import HomePage from './pages/HomePage';
 import MoviePage from './pages/MoviePage';
 import UserPage from './pages/UserPage';
 import NotFoundPage from './pages/NotFoundPage';
+import StatsPage from './pages/StatsPage';
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<HomePage />} />
+            <Route path="/stats" element={<StatsPage />} />
             <Route path="/movie/:tmdbId" element={<MoviePage />} />
             <Route path="/tv/:tmdbId" element={<MoviePage />} />
             <Route path="/u/:uid" element={<UserPage />} />

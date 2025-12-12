@@ -22,7 +22,7 @@ const LABELS: Record<string, string> = {
     story: 'Story',
     rewatch: 'Re-?s',
     wtf: 'WTF',
-    cozy: 'Cozy'
+    cozy: 'Fun'
 };
 
 export function FearFingerprint({ datasets, height = 300, showLegend = true }: FearFingerprintProps) {

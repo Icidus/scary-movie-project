@@ -7,7 +7,7 @@ import {
     onAuthStateChanged
 } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
 import type { UserProfile } from '@/types';
 
 const ALLOWED_EMAILS = [
@@ -32,6 +32,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        let profileUnsubscribe: (() => void) | null = null;
+
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
             if (currentUser) {
                 // Check allowlist
@@ -62,14 +64,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     await setDoc(userRef, newProfile);
                     setUserProfile(newProfile);
                 }
+
+                // Keep profile in sync in real-time (e.g., after Edit Profile)
+                if (profileUnsubscribe) profileUnsubscribe();
+                profileUnsubscribe = onSnapshot(userRef, (snap) => {
+                    if (snap.exists()) {
+                        setUserProfile(snap.data() as UserProfile);
+                    }
+                });
             } else {
                 setUser(null);
                 setUserProfile(null);
+
+                if (profileUnsubscribe) {
+                    profileUnsubscribe();
+                    profileUnsubscribe = null;
+                }
             }
             setLoading(false);
         });
 
-        return unsubscribe;
+        return () => {
+            unsubscribe();
+            if (profileUnsubscribe) profileUnsubscribe();
+        };
     }, []);
 
     const signIn = async () => {

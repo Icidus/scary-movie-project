@@ -28,9 +28,12 @@ export function RatingSliders({ ratings, onChange, readOnly = false }: RatingSli
                                     <Label htmlFor={key} className="text-base font-bold flex items-center gap-2">
                                         {label}
                                     </Label>
-                                    <span className={`text-xl font-black w-12 text-right ${ratings[key] >= 8 ? 'text-red-500 animate-pulse' : 'text-primary'}`}>
-                                        {ratings[key]}
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="sr-only">{label} rating</span>
+                                        <span className={`min-w-12 rounded-full px-3 py-1 text-right text-base font-black tabular-nums ${ratings[key] >= 8 ? 'bg-destructive/10 text-destructive' : 'bg-primary/10 text-primary'}`}>
+                                            {ratings[key].toFixed(1)}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 <Slider
@@ -41,10 +44,10 @@ export function RatingSliders({ ratings, onChange, readOnly = false }: RatingSli
                                     value={[ratings[key]]}
                                     disabled={readOnly}
                                     onValueChange={(vals: number[]) => onChange(key, vals[0])}
-                                    className={readOnly ? "opacity-90 cursor-default" : "py-2 cursor-grab active:cursor-grabbing"}
+                                    className={readOnly ? "opacity-95" : "py-3 cursor-grab active:cursor-grabbing"}
                                 />
 
-                                <div className="text-xs text-center font-medium text-muted-foreground bg-secondary/30 py-1.5 rounded-md animate-in fade-in slide-in-from-bottom-1 duration-500">
+                                <div className="text-sm text-center font-medium text-foreground/80 bg-muted/60 border border-border/60 py-2 px-3 rounded-lg">
                                     {getFunLabel(key, ratings[key])}
                                 </div>
                             </div>
