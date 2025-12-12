@@ -4,6 +4,7 @@ import { Layout } from './components/Layout';
 import HomePage from './pages/HomePage';
 import MoviePage from './pages/MoviePage';
 import UserPage from './pages/UserPage';
+import NotFoundPage from './pages/NotFoundPage';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
             <Route path="/movie/:tmdbId" element={<MoviePage />} />
             <Route path="/tv/:tmdbId" element={<MoviePage />} />
             <Route path="/u/:uid" element={<UserPage />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>
       </BrowserRouter>
