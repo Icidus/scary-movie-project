@@ -416,7 +416,7 @@ export default function MoviePage() {
                                                                 <div key={key} className="flex flex-col border-b border-primary/10 pb-3 last:border-0 break-inside-avoid">
                                                                     <div className="flex justify-between items-center mb-1">
                                                                         <span className="font-bold text-muted-foreground text-sm sm:text-base">{label}</span>
-                                                                        <span className="font-mono font-black text-xl sm:text-2xl text-primary">{v.ratings[key]}</span>
+                                                                        <span className="font-mono font-black text-xl sm:text-2xl text-primary">{v.ratings[key].toFixed(1)}</span>
                                                                     </div>
                                                                     <p className="text-sm text-muted-foreground italic overflow-hidden text-ellipsis whitespace-nowrap">
                                                                         {getFunLabel(key, v.ratings[key])}
