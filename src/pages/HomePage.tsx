@@ -68,8 +68,8 @@ export default function HomePage() {
 
     return (
         <div className="container mx-auto py-8 px-4 space-y-8">
-            <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4 border-b pb-4">
-                <div>
+            <div className="flex flex-col md:flex-row justify-between items-center md:items-end mb-8 gap-4 border-b pb-4">
+                <div className="text-center md:text-left">
                     <h1 className="text-4xl font-black tracking-tight mb-2 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                         {title}
                     </h1>

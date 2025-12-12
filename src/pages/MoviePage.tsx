@@ -207,7 +207,7 @@ export default function MoviePage() {
                     </div>
 
                     <div className="flex-1 space-y-2 mb-4 md:mb-0">
-                        <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-white drop-shadow-md">
+                        <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-white drop-shadow-md break-words max-w-full">
                             {movie.title}
                         </h1>
                         <div className="text-xl md:text-2xl font-medium text-white/80 flex items-center gap-4">
@@ -240,8 +240,8 @@ export default function MoviePage() {
 
                 {/* Mobile Poster (visible only on small screens) */}
                 <div className="md:hidden flex gap-6">
-                    <img src={getPosterUrl(movie.posterPath)} className="w-32 rounded-lg shadow-lg" alt={movie.title} />
-                    <div className="flex-1 text-sm text-muted-foreground">
+                    <img src={getPosterUrl(movie.posterPath)} className="w-32 rounded-lg shadow-lg flex-shrink-0" alt={movie.title} />
+                    <div className="flex-1 text-sm text-muted-foreground min-w-0">
                         <p>{movie.overview}</p>
                     </div>
                 </div>
@@ -401,8 +401,8 @@ export default function MoviePage() {
                                         <TabsTrigger value="individual">👤 Individual Logs</TabsTrigger>
                                     </TabsList>
 
-                                    <TabsContent value="comparison" className="mt-0 space-y-8">
-                                        <Card className="bg-card/30 border-dashed">
+                                    <TabsContent value="comparison" className="mt-0 space-y-8 overflow-hidden">
+                                        <Card className="bg-card/30 border-dashed overflow-hidden">
                                             <CardHeader className="pb-2">
                                                 <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground flex items-center justify-between">
                                                     <span>The Fear Fingerprint</span>
