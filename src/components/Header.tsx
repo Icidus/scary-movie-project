@@ -148,8 +148,8 @@ export function Header() {
 
     return (
         <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 pt-[env(safe-area-inset-top)]">
-            <div className="container flex h-16 items-center justify-between px-4">
-                <div className="flex items-center gap-6">
+            <div className="container flex h-16 items-center gap-3 px-4">
+                <div className="flex items-center gap-3 shrink-0">
                     <Link to="/" className="flex items-center gap-3 font-bold text-xl h-full group">
                         <div className="relative">
                             <Ghost className="h-7 w-7 text-primary transition-transform duration-500 ease-in-out group-hover:-translate-y-1 group-hover:rotate-12" />
@@ -175,9 +175,9 @@ export function Header() {
                     </nav>
                 </div>
 
-                <div className="flex items-center gap-2 md:gap-4">
-                    {/* Search Bar - Visible on Mobile now */}
-                    <div className="relative w-full max-w-sm" ref={dropdownRef} role="search" aria-label="Movie search">
+                <div className="flex-1 min-w-0">
+                    {/* Search Bar */}
+                    <div className="relative w-full max-w-xl mx-auto" ref={dropdownRef} role="search" aria-label="Movie search">
                         <div className="flex items-center gap-2">
                             <div className="relative flex-1">
                                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -189,7 +189,7 @@ export function Header() {
                                     autoCapitalize="none"
                                     autoCorrect="off"
                                     spellCheck={false}
-                                    className="h-10 w-full rounded-full border-transparent bg-muted/60 pl-9 pr-10 shadow-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/20"
+                                    className="h-11 w-full rounded-full border-transparent bg-muted/60 pl-9 pr-10 text-base shadow-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/20"
                                     value={query}
                                     onChange={(e) => setQuery(e.target.value)}
                                     onFocus={() => {
@@ -311,6 +311,10 @@ export function Header() {
                             </div>
                         )}
                     </div>
+
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
 
                     {user ? (
                         <DropdownMenu>
