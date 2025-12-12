@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#292524"/> <!-- Warm dark background -->
+  <path d="M256 96c-66 0-120 50-120 125v90c0 40-30 60-30 60v35h60c0-20 20-30 40-30s40 10 40 30h40c0-20 20-30 40-30s40 10 40 30h40c0-20 20-30 40-30s40 10 40 30h60v-35s-30-20-30-60v-90c0-75-54-125-120-125z" fill="#f3e8ff"/> <!-- Body -->
+  <circle cx="216" cy="200" r="15" fill="#292524"/>
+  <circle cx="296" cy="200" r="15" fill="#292524"/>
+  <ellipse cx="256" cy="250" rx="10" ry="15" fill="#292524"/>
+</svg>
