@@ -329,8 +329,8 @@ export default function MoviePage() {
 
                                                 <div className="grid gap-2">
                                                     {seasonData.episodes?.map((episode: any) => (
-                                                        <div key={episode.id} className="flex flex-col sm:flex-row gap-4 p-4 rounded-lg bg-card/20 hover:bg-card/40 transition-colors border border-transparent hover:border-primary/20 group">
-                                                            <div className="flex-shrink-0 w-full sm:w-32 aspect-video bg-black/40 rounded overflow-hidden relative">
+                                                        <div key={episode.id} className="flex gap-4 p-4 rounded-lg bg-card/20 hover:bg-card/40 transition-colors border border-transparent hover:border-primary/20 group">
+                                                            <div className="flex-shrink-0 w-28 sm:w-32 aspect-video bg-black/40 rounded overflow-hidden relative">
                                                                 {episode.still_path ? (
                                                                     <img src={`https://image.tmdb.org/t/p/w300${episode.still_path}`} className="w-full h-full object-cover" alt="" />
                                                                 ) : (
