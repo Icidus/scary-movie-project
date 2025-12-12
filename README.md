@@ -18,7 +18,7 @@ A simplified Letterboxd for your family's horror movie marathons.
 
 1. **Clone & Install**:
    ```bash
-   npm install
+   npm installs
    ```
 
 2. **Environment Variables**:
