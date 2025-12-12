@@ -189,7 +189,8 @@ export default function MoviePage() {
     return (
         <div className="min-h-screen pb-20">
             {/* BACKDROP HERO */}
-            <div className="relative h-[40vh] md:h-[50vh] w-full overflow-hidden">
+            {/* BACKDROP HERO */}
+            <div className="relative min-h-[40vh] md:h-[50vh] w-full overflow-hidden flex items-end">
                 {movie.backdropPath && (
                     <img
                         src={`https://image.tmdb.org/t/p/original${movie.backdropPath}`}
@@ -200,51 +201,43 @@ export default function MoviePage() {
                 {/* Gradient Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
 
-                <div className="absolute bottom-0 left-0 p-6 md:p-12 w-full max-w-5xl mx-auto flex flex-col md:flex-row gap-8 items-end">
-                    {/* Poster floating relative to backdrop */}
-                    <div className="hidden md:block w-48 rounded-xl shadow-2xl overflow-hidden border-4 border-background/20 transform translate-y-12">
+                <div className="relative w-full z-10 p-4 md:p-12 max-w-5xl mx-auto flex flex-col md:flex-row gap-4 md:gap-8 items-center md:items-end pb-8 md:pb-4 pt-20 md:pt-12">
+                    {/* Poster - centered above on mobile, left side on desktop */}
+                    <div className="w-40 md:w-48 mx-auto md:mx-0 rounded-lg md:rounded-xl shadow-2xl overflow-hidden border-2 md:border-4 border-background/20 flex-shrink-0">
                         <img src={getPosterUrl(movie.posterPath)} className="w-full" alt={movie.title} />
                     </div>
 
-                    <div className="flex-1 space-y-2 mb-4 md:mb-0">
-                        <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-white drop-shadow-md break-words max-w-full">
+                    <div className="flex-1 space-y-2 w-full text-center md:text-left">
+                        <h1 className="text-3xl md:text-6xl font-black tracking-tighter text-white drop-shadow-md break-words">
                             {movie.title}
                         </h1>
-                        <div className="text-xl md:text-2xl font-medium text-white/80 flex items-center gap-4">
+                        <div className="text-sm md:text-2xl font-medium text-white/80 flex flex-wrap items-center justify-center md:justify-start gap-2 md:gap-4">
                             <span>{movie.year}</span>
-                            {movie.runtime && <span className="text-sm px-2 py-0.5 border border-white/30 rounded-full">{Math.floor(movie.runtime / 60)}h {movie.runtime % 60}m</span>}
-                            {movie.director && <span className="text-sm text-white/60">Dir. {movie.director}</span>}
+                            {movie.runtime && <span className="text-xs md:text-sm px-2 py-0.5 border border-white/30 rounded-full">{Math.floor(movie.runtime / 60)}h {movie.runtime % 60}m</span>}
+                            {movie.director && <span className="text-xs md:text-sm text-white/60">Dir. {movie.director}</span>}
                         </div>
 
                         {movie.tagline && (
-                            <p className="text-lg italic text-secondary font-medium mt-2">{movie.tagline}</p>
+                            <p className="text-sm md:text-lg italic text-secondary font-medium mt-2">{movie.tagline}</p>
                         )}
 
-                        <div className="flex flex-wrap gap-2 mt-4">
+                        <div className="flex flex-wrap gap-2 mt-4 justify-center md:justify-start">
                             {movie.genres?.map(g => (
-                                <Badge key={g} variant="secondary" className="bg-white/10 hover:bg-white/20 text-white border-0">
+                                <Badge key={g} variant="secondary" className="bg-white/10 hover:bg-white/20 text-white border-0 text-xs md:text-sm">
                                     {g}
                                 </Badge>
                             ))}
                         </div>
 
-                        <div className="mt-6">
+                        <div className="mt-4 md:mt-6 flex justify-center md:justify-start">
                             {user && <ViewingForm movie={movie} onSuccess={fetchData} />}
-                            {!user && <p className="text-white/60 text-sm">Sign in to log this movie.</p>}
+                            {!user && <p className="text-white/60 text-xs md:text-sm">Sign in to log this movie.</p>}
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="container mx-auto px-4 mt-6 md:mt-12 max-w-6xl space-y-12">
-
-                {/* Mobile Poster (visible only on small screens) */}
-                <div className="md:hidden flex gap-6">
-                    <img src={getPosterUrl(movie.posterPath)} className="w-32 rounded-lg shadow-lg flex-shrink-0" alt={movie.title} />
-                    <div className="flex-1 text-sm text-muted-foreground min-w-0">
-                        <p>{movie.overview}</p>
-                    </div>
-                </div>
+            <div className="container mx-auto px-4 mt-8 md:mt-12 max-w-6xl space-y-12">
 
                 {/* OVERVIEW & CAST */}
                 <div className="grid md:grid-cols-3 gap-12">
@@ -254,7 +247,7 @@ export default function MoviePage() {
                             <h2 className="text-2xl font-bold border-b border-primary/20 pb-2 flex items-center gap-2">
                                 📖 The Story
                             </h2>
-                            <p className="text-lg leading-relaxed text-muted-foreground">
+                            <p className="text-base md:text-lg leading-relaxed text-muted-foreground">
                                 {movie.overview || "No detailed plot available."}
                             </p>
                         </section>
@@ -265,19 +258,19 @@ export default function MoviePage() {
                                 <h2 className="text-2xl font-bold border-b border-primary/20 pb-2 flex items-center gap-2">
                                     🎭 Starring
                                 </h2>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                                     {movie.cast.map((actor, i) => (
-                                        <div key={i} className="flex items-center gap-3 bg-card/50 p-2 rounded-lg border border-transparent hover:border-primary/20 transition-all">
-                                            <div className="w-10 h-10 rounded-full bg-muted overflow-hidden flex-shrink-0">
+                                        <div key={i} className="flex items-center gap-3 bg-card/50 p-3 rounded-lg border border-transparent hover:border-primary/20 transition-all">
+                                            <div className="w-12 h-12 rounded-full bg-muted overflow-hidden flex-shrink-0">
                                                 {actor.profilePath ? (
                                                     <img src={`https://image.tmdb.org/t/p/w200${actor.profilePath}`} alt={actor.name} className="w-full h-full object-cover" />
                                                 ) : (
-                                                    <div className="w-full h-full flex items-center justify-center text-xs">?</div>
+                                                    <div className="w-full h-full flex items-center justify-center text-sm">?</div>
                                                 )}
                                             </div>
                                             <div className="overflow-hidden">
-                                                <p className="text-sm font-bold truncate">{actor.name}</p>
-                                                <p className="text-xs text-muted-foreground truncate">{actor.role}</p>
+                                                <p className="text-sm md:text-base font-bold truncate">{actor.name}</p>
+                                                <p className="text-sm text-muted-foreground truncate">{actor.role}</p>
                                             </div>
                                         </div>
                                     ))}
@@ -327,26 +320,26 @@ export default function MoviePage() {
                                                     </div>
                                                 </div>
 
-                                                <div className="grid gap-2">
+                                                <div className="grid gap-3">
                                                     {seasonData.episodes?.map((episode: any) => (
-                                                        <div key={episode.id} className="flex gap-4 p-4 rounded-lg bg-card/20 hover:bg-card/40 transition-colors border border-transparent hover:border-primary/20 group">
-                                                            <div className="flex-shrink-0 w-28 sm:w-32 aspect-video bg-black/40 rounded overflow-hidden relative">
+                                                        <div key={episode.id} className="flex flex-col sm:flex-row gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-card/20 hover:bg-card/40 transition-colors border border-transparent hover:border-primary/20 group">
+                                                            <div className="flex-shrink-0 w-full sm:w-40 md:w-48 aspect-video bg-black/40 rounded overflow-hidden relative">
                                                                 {episode.still_path ? (
                                                                     <img src={`https://image.tmdb.org/t/p/w300${episode.still_path}`} className="w-full h-full object-cover" alt="" />
                                                                 ) : (
-                                                                    <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">No Image</div>
+                                                                    <div className="w-full h-full flex items-center justify-center text-sm text-muted-foreground">No Image</div>
                                                                 )}
-                                                                <div className="absolute top-1 left-1 bg-black/60 px-1.5 py-0.5 rounded text-[10px] font-mono text-white">
+                                                                <div className="absolute top-1 left-1 bg-black/60 px-2 py-1 rounded text-xs font-mono text-white">
                                                                     Ep {episode.episode_number}
                                                                 </div>
                                                             </div>
 
                                                             <div className="flex-1 min-w-0">
                                                                 <div className="flex justify-between items-start gap-2">
-                                                                    <h4 className="font-bold truncate">{episode.name}</h4>
-                                                                    <span className="text-xs font-mono opacity-50 whitespace-nowrap">{episode.runtime}m</span>
+                                                                    <h4 className="text-base md:text-lg font-bold truncate">{episode.name}</h4>
+                                                                    <span className="text-sm font-mono opacity-50 whitespace-nowrap">{episode.runtime}m</span>
                                                                 </div>
-                                                                <p className="text-sm text-muted-foreground line-clamp-2 mt-1 mb-2">{episode.overview}</p>
+                                                                <p className="text-sm md:text-base text-muted-foreground line-clamp-2 mt-1 mb-2">{episode.overview}</p>
 
                                                                 {/* Log Episode Button */}
                                                                 <div className="flex justify-end">
@@ -362,7 +355,7 @@ export default function MoviePage() {
                                                                                 title: episode.name
                                                                             }}
                                                                             trigger={
-                                                                                <button className="text-xs font-bold text-primary hover:text-primary/80 flex items-center gap-1 bg-primary/10 px-3 py-1.5 rounded-full transition-colors">
+                                                                                <button className="text-sm font-bold text-primary hover:text-primary/80 flex items-center gap-1 bg-primary/10 px-3 py-2 rounded-full transition-colors">
                                                                                     ✨ Log Episode
                                                                                 </button>
                                                                             }
@@ -449,27 +442,27 @@ export default function MoviePage() {
                                     <TabsContent value="individual" className="space-y-4 mt-0">
                                         {viewings.map((v) => (
                                             <Card key={v.id} className="bg-card/50 overflow-hidden">
-                                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="font-bold font-mono text-primary">{v.watchedAt}</div>
-                                                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                                <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0 pb-2">
+                                                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                                                        <div className="font-bold font-mono text-base text-primary">{v.watchedAt}</div>
+                                                        <span className="text-sm text-muted-foreground flex items-center gap-1">
                                                             by <UserBadge userId={v.userId} className="text-foreground" />
                                                         </span>
                                                     </div>
                                                     <div className="flex gap-2">
-                                                        {v.toggles.wouldWatchAgain && <Badge variant="outline" className="text-[10px]">Rewatchable</Badge>}
-                                                        {v.toggles.wouldRecommend && <Badge variant="default" className="text-[10px]">Recommended</Badge>}
+                                                        {v.toggles.wouldWatchAgain && <Badge variant="outline" className="text-xs">Rewatchable</Badge>}
+                                                        {v.toggles.wouldRecommend && <Badge variant="default" className="text-xs">Recommended</Badge>}
                                                     </div>
                                                 </CardHeader>
                                                 <CardContent className="space-y-4">
-                                                    {v.notes && <p className="text-sm border-l-2 border-primary/50 pl-4 italic text-foreground/80">"{v.notes}"</p>}
+                                                    {v.notes && <p className="text-sm md:text-base border-l-2 border-primary/50 pl-4 italic text-foreground/80">"{v.notes}"</p>}
 
                                                     {/* Mini Fingerprint for individual viewing - Stacked Layout */}
                                                     <div className="mt-4 pt-4 border-t border-secondary/20">
-                                                        <p className="text-xs font-bold text-muted-foreground mb-4 uppercase text-center sm:text-left">Individual Stats</p>
+                                                        <p className="text-sm font-bold text-muted-foreground mb-4 uppercase text-center sm:text-left">Individual Stats</p>
                                                         <div className="flex flex-col gap-6">
                                                             {/* Chart on top, wider */}
-                                                            <div className="w-full h-52 sm:h-64 bg-background/20 rounded-lg p-2">
+                                                            <div className="w-full h-64 sm:h-72 bg-background/20 rounded-lg p-2">
                                                                 <FearFingerprint
                                                                     datasets={[{ label: 'Rating', ratings: v.ratings, color: '#a855f7' }]}
                                                                     height={240}
@@ -477,14 +470,14 @@ export default function MoviePage() {
                                                                 />
                                                             </div>
                                                             {/* Detailed List below */}
-                                                            <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-sm px-2">
+                                                            <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-base px-2">
                                                                 {RATING_KEYS.map(({ key, label }) => (
-                                                                    <div key={key} className="flex flex-col border-b border-primary/10 pb-2 last:border-0 break-inside-avoid">
+                                                                    <div key={key} className="flex flex-col border-b border-primary/10 pb-3 last:border-0 break-inside-avoid">
                                                                         <div className="flex justify-between items-center mb-1">
-                                                                            <span className="font-bold text-muted-foreground">{label}</span>
-                                                                            <span className="font-mono font-black text-lg text-primary">{v.ratings[key]}</span>
+                                                                            <span className="font-bold text-muted-foreground text-sm sm:text-base">{label}</span>
+                                                                            <span className="font-mono font-black text-xl sm:text-2xl text-primary">{v.ratings[key]}</span>
                                                                         </div>
-                                                                        <p className="text-xs text-muted-foreground italic h-4 overflow-hidden text-ellipsis whitespace-nowrap">
+                                                                        <p className="text-sm text-muted-foreground italic overflow-hidden text-ellipsis whitespace-nowrap">
                                                                             {getFunLabel(key, v.ratings[key])}
                                                                         </p>
                                                                     </div>
@@ -505,11 +498,11 @@ export default function MoviePage() {
                     {/* Sidebar Stats */}
                     <div className="space-y-8">
                         <div className="bg-secondary/10 p-6 rounded-xl border border-secondary/20 text-center space-y-2 sticky top-24">
-                            <h4 className="font-bold text-secondary">Is it scary?</h4>
-                            <p className="text-2xl font-black">
+                            <h4 className="font-bold text-base md:text-lg text-secondary">Is it scary?</h4>
+                            <p className="text-3xl md:text-4xl font-black">
                                 {averageRatings?.overall ? averageRatings.overall.toFixed(1) : "?"}/10
                             </p>
-                            <p className="text-xs text-muted-foreground">Based on {viewings.length} survivor logs</p>
+                            <p className="text-sm text-muted-foreground">Based on {viewings.length} survivor logs</p>
                         </div>
                     </div>
                 </div>

@@ -1,4 +1,5 @@
 import { db } from '@/lib/firebase';
+import { removeUndefined } from '@/lib/utils';
 import {
     collection,
     addDoc,
@@ -16,10 +17,12 @@ export const ViewingsService = {
         // Client-side validation is assumed to fail-fast before calling this, 
         // but the rules will strictly enforce it.
 
-        const docRef = await addDoc(collection(db, 'viewings'), {
+        const sanitizedViewing = removeUndefined({
             ...viewing,
             insertedAt: serverTimestamp()
         });
+
+        const docRef = await addDoc(collection(db, 'viewings'), sanitizedViewing);
 
         // Recalculate Average for the Movie
         // We do this here to ensure the "Home" page cards have data without fetching viewings N times.

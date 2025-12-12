@@ -1,4 +1,5 @@
 import { db } from '@/lib/firebase';
+import { removeUndefined } from '@/lib/utils';
 import {
     doc,
     setDoc,
@@ -91,7 +92,10 @@ export const MoviesService = {
             firstAirDate: fullMovie.first_air_date
         };
 
-        await setDoc(docRef, newMovie, { merge: true });
+        // Sanitize object to remove undefined values which Firestore rejects
+        const sanitizedMovie = removeUndefined(newMovie);
+
+        await setDoc(docRef, sanitizedMovie, { merge: true });
         return newMovie;
     },
 
@@ -107,3 +111,4 @@ export const MoviesService = {
         return snapshot.docs.map(d => d.data() as Movie);
     }
 };
+
