@@ -88,7 +88,61 @@ export const ViewingsService = {
             return viewing.id;
         }
 
-        // Otherwise, find an existing viewing for this user+movie(+episode) and update it.
+        const isEpisode = viewing.mediaType === 'episode' || viewing.seasonNumber != null || viewing.episodeNumber != null || !!(viewing as any).episodeTitle;
+
+        // Episodes: treat as one log per user per episode (and allow edits).
+        // First try exact identity; if older docs are missing seasonNumber, fall back to episodeNumber + (optional) title.
+        if (isEpisode && viewing.episodeNumber != null) {
+            const normalizeTitle = (t: unknown) => (typeof t === 'string' ? t.trim().toLowerCase() : '');
+            const targetTitle = normalizeTitle((viewing as any).episodeTitle);
+
+            // Exact match (preferred)
+            if (viewing.seasonNumber != null) {
+                const episodeQuery = query(
+                    collection(db, 'viewings'),
+                    where('movieId', '==', viewing.movieId),
+                    where('userId', '==', viewing.userId),
+                    where('seasonNumber', '==', viewing.seasonNumber),
+                    where('episodeNumber', '==', viewing.episodeNumber),
+                    limit(1)
+                );
+
+                const episodeSnap = await getDocs(episodeQuery);
+                const existingEpisodeId = episodeSnap.docs[0]?.id;
+                const id = existingEpisodeId ?? `${viewing.movieId}_${viewing.userId}_s${viewing.seasonNumber}e${viewing.episodeNumber}`;
+                await setDoc(doc(db, 'viewings', id), sanitizedViewing, { merge: true });
+                return id;
+            }
+
+            // Legacy fallback (seasonNumber missing on older docs)
+            const legacyQuery = query(
+                collection(db, 'viewings'),
+                where('movieId', '==', viewing.movieId),
+                where('userId', '==', viewing.userId),
+                where('episodeNumber', '==', viewing.episodeNumber),
+                limit(25)
+            );
+
+            const legacySnap = await getDocs(legacyQuery);
+            const candidates = legacySnap.docs.map(d => ({ id: d.id, ...(d.data() as any) })) as Array<{ id: string } & Viewing>;
+            const episodeCandidates = candidates.filter(v =>
+                v.mediaType === 'episode' || v.seasonNumber != null || v.episodeNumber != null || !!(v as any).episodeTitle
+            );
+
+            let match = episodeCandidates.find(v => v.seasonNumber == null && normalizeTitle((v as any).episodeTitle) !== '' && normalizeTitle((v as any).episodeTitle) === targetTitle);
+            if (!match && episodeCandidates.length === 1) match = episodeCandidates[0];
+
+            if (match) {
+                await setDoc(doc(db, 'viewings', match.id), sanitizedViewing, { merge: true });
+                return match.id;
+            }
+
+            // No safe match: create a new doc to avoid collisions.
+            const created = await addDoc(collection(db, 'viewings'), sanitizedViewing);
+            return created.id;
+        }
+
+        // Non-episode: find an existing show/movie viewing for this user+movie (latest) and update it.
         const q = query(
             collection(db, 'viewings'),
             where('movieId', '==', viewing.movieId),
@@ -100,15 +154,8 @@ export const ViewingsService = {
         const snapshot = await getDocs(q);
         const candidates = snapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) })) as Array<{ id: string } & Viewing>;
 
-        const isEpisode = viewing.mediaType === 'episode' || viewing.seasonNumber != null || viewing.episodeNumber != null;
-        const match = candidates.find(v => {
-            if (isEpisode) {
-                return v.seasonNumber === viewing.seasonNumber && v.episodeNumber === viewing.episodeNumber;
-            }
-            return v.seasonNumber == null && v.episodeNumber == null;
-        });
-
-        const id = match?.id ?? `${viewing.movieId}_${viewing.userId}${isEpisode ? `_s${viewing.seasonNumber}e${viewing.episodeNumber}` : ''}`;
+        const match = candidates.find(v => v.seasonNumber == null && v.episodeNumber == null);
+        const id = match?.id ?? `${viewing.movieId}_${viewing.userId}`;
         await setDoc(doc(db, 'viewings', id), sanitizedViewing, { merge: true });
 
         // Recalculate Average for the Movie (kept consistent with add())

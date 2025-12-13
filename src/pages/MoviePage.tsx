@@ -26,6 +26,10 @@ import { ChevronDown } from 'lucide-react';
 
 import { useLocation } from 'react-router-dom';
 
+function normalizeEpisodeTitle(title: string | undefined | null) {
+    return (title || '').trim().toLowerCase();
+}
+
 export default function MoviePage() {
     const { tmdbId } = useParams<{ tmdbId: string }>();
     const { user } = useAuth();
@@ -536,54 +540,102 @@ export default function MoviePage() {
                                                 </div>
 
                                                 <div className="grid gap-3">
-                                                    {seasonData.episodes?.map((episode: TMDBEpisode) => (
-                                                        <div key={episode.id} className="flex flex-col sm:flex-row gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-card/20 hover:bg-card/40 transition-colors border border-transparent hover:border-primary/20 group">
-                                                            <div className="flex-shrink-0 w-full sm:w-40 md:w-48 aspect-video bg-black/40 rounded overflow-hidden relative">
-                                                                {episode.still_path ? (
-                                                                    <img src={`https://image.tmdb.org/t/p/w300${episode.still_path}`} className="w-full h-full object-cover" alt="" />
-                                                                ) : (
-                                                                    <div className="w-full h-full flex items-center justify-center text-sm text-muted-foreground">No Image</div>
-                                                                )}
-                                                                <div className="absolute top-1 left-1 bg-black/60 px-2 py-1 rounded text-xs font-mono text-white">
-                                                                    Ep {episode.episode_number}
+                                                    {seasonData.episodes?.map((episode: TMDBEpisode) => {
+                                                        const myEpisodeViewing = user
+                                                            ? (() => {
+                                                                const myEpisodeViewings = viewings.filter(v =>
+                                                                    v.userId === user.uid &&
+                                                                    (v.mediaType === 'episode' || v.seasonNumber != null || v.episodeNumber != null || !!v.episodeTitle)
+                                                                );
+
+                                                                // Prefer exact match (newer data)
+                                                                const exact = myEpisodeViewings.find(v =>
+                                                                    v.seasonNumber === episode.season_number &&
+                                                                    v.episodeNumber === episode.episode_number
+                                                                );
+                                                                if (exact) return exact;
+
+                                                                // Legacy fallback: episode logs missing seasonNumber
+                                                                const sameNumber = myEpisodeViewings.filter(v =>
+                                                                    v.seasonNumber == null && v.episodeNumber === episode.episode_number
+                                                                );
+                                                                if (sameNumber.length === 0) return undefined;
+
+                                                                const targetTitle = normalizeEpisodeTitle(episode.name);
+                                                                const titleMatch = sameNumber.find(v => normalizeEpisodeTitle(v.episodeTitle) === targetTitle);
+                                                                if (titleMatch) return titleMatch;
+
+                                                                // If still ambiguous, only match when there's exactly one legacy candidate
+                                                                if (sameNumber.length === 1) return sameNumber[0];
+
+                                                                return undefined;
+                                                            })()
+                                                            : undefined;
+
+                                                        return (
+                                                            <div key={episode.id} className="flex flex-col sm:flex-row gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-card/20 hover:bg-card/40 transition-colors border border-transparent hover:border-primary/20 group">
+                                                                <div className="flex-shrink-0 w-full sm:w-40 md:w-48 aspect-video bg-black/40 rounded overflow-hidden relative">
+                                                                    {episode.still_path ? (
+                                                                        <img src={`https://image.tmdb.org/t/p/w300${episode.still_path}`} className="w-full h-full object-cover" alt="" />
+                                                                    ) : (
+                                                                        <div className="w-full h-full flex items-center justify-center text-sm text-muted-foreground">No Image</div>
+                                                                    )}
+                                                                    <div className="absolute top-1 left-1 bg-black/60 px-2 py-1 rounded text-xs font-mono text-white">
+                                                                        Ep {episode.episode_number}
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 sm:gap-2">
+                                                                        <h4 className="text-base md:text-lg font-bold break-words sm:truncate">{episode.name}</h4>
+                                                                        {episode.runtime != null && (
+                                                                            <span className="text-sm font-mono opacity-50 sm:whitespace-nowrap">{episode.runtime}m</span>
+                                                                        )}
+                                                                    </div>
+                                                                    <p className="text-sm md:text-base text-muted-foreground line-clamp-2 mt-1 mb-2">{episode.overview}</p>
+
+                                                                    {myEpisodeViewing && (
+                                                                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                                                                            <span className="text-xs font-mono bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                                                                Scare {myEpisodeViewing.ratings.overall.toFixed(1)}
+                                                                            </span>
+                                                                            {typeof myEpisodeViewing.ratings.enjoyment === 'number' && (
+                                                                                <span className="text-xs font-mono bg-secondary/15 text-secondary px-2 py-1 rounded-full">
+                                                                                    Enjoy {myEpisodeViewing.ratings.enjoyment.toFixed(1)}
+                                                                                </span>
+                                                                            )}
+                                                                            {myEpisodeViewing.toggles?.wouldWatchAgain && (
+                                                                                <span className="text-xs bg-muted/60 border border-border/60 px-2 py-1 rounded-full">Rewatchable</span>
+                                                                            )}
+                                                                            {myEpisodeViewing.toggles?.wouldRecommend && (
+                                                                                <span className="text-xs bg-muted/60 border border-border/60 px-2 py-1 rounded-full">Recommended</span>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+
+                                                                    <div className="flex justify-end">
+                                                                        {user && (
+                                                                            <ViewingForm
+                                                                                movie={movie}
+                                                                                episode={{
+                                                                                    seasonNumber: episode.season_number,
+                                                                                    episodeNumber: episode.episode_number,
+                                                                                    title: episode.name
+                                                                                }}
+                                                                                existingViewing={myEpisodeViewing}
+                                                                                trigger={
+                                                                                    <button className="text-sm font-bold text-primary hover:text-primary/80 flex items-center gap-1 bg-primary/10 px-3 py-2 rounded-full transition-colors">
+                                                                                        {myEpisodeViewing ? 'Edit Log' : '✨ Log Episode'}
+                                                                                    </button>
+                                                                                }
+                                                                                onSuccess={fetchData}
+                                                                            />
+                                                                        )}
+                                                                    </div>
                                                                 </div>
                                                             </div>
-
-                                                            <div className="flex-1 min-w-0">
-                                                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 sm:gap-2">
-                                                                    <h4 className="text-base md:text-lg font-bold break-words sm:truncate">{episode.name}</h4>
-                                                                    {episode.runtime != null && (
-                                                                        <span className="text-sm font-mono opacity-50 sm:whitespace-nowrap">{episode.runtime}m</span>
-                                                                    )}
-                                                                </div>
-                                                                <p className="text-sm md:text-base text-muted-foreground line-clamp-2 mt-1 mb-2">{episode.overview}</p>
-
-                                                                {/* Log Episode Button */}
-                                                                <div className="flex justify-end">
-                                                                    {/* Reuse ViewingForm but pass episode details. We need to update ViewingForm first to prop these accept. 
-                                                                         For now, just a placeholder or we pass movie but modify title? 
-                                                                         Ideally we pass the full episode context. */}
-                                                                    {user && (
-                                                                        <ViewingForm
-                                                                            movie={movie}
-                                                                            episode={{
-                                                                                seasonNumber: episode.season_number,
-                                                                                episodeNumber: episode.episode_number,
-                                                                                title: episode.name
-                                                                            }}
-                                                                            existingViewing={viewings.find(v => v.userId === user.uid && v.seasonNumber === episode.season_number && v.episodeNumber === episode.episode_number)}
-                                                                            trigger={
-                                                                                <button className="text-sm font-bold text-primary hover:text-primary/80 flex items-center gap-1 bg-primary/10 px-3 py-2 rounded-full transition-colors">
-                                                                                    ✨ Log Episode
-                                                                                </button>
-                                                                            }
-                                                                            onSuccess={fetchData}
-                                                                        />
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    ))}
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         ) : (
