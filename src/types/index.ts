@@ -3,9 +3,12 @@ export interface UserProfile {
     displayName: string | null;
     photoURL: string | null;
     email: string | null;
+    colorKey?: UserColorKey | null;
     role?: 'member' | 'admin';
     createdAt?: any;
 }
+
+export type UserColorKey = 'chart-1' | 'chart-2' | 'chart-3' | 'chart-4' | 'chart-5' | 'destructive';
 
 export interface Movie {
     tmdbId: string;

@@ -17,6 +17,8 @@ import { Link } from 'react-router-dom';
 import { ViewingForm } from '@/components/ViewingForm';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { updateProfile } from 'firebase/auth';
+import type { UserColorKey } from '@/types';
+import { USER_COLOR_KEYS, userColorKeyToCss } from '@/lib/user-colors';
 
 export default function UserPage() {
     const { uid } = useParams<{ uid: string }>();
@@ -58,6 +60,7 @@ export default function UserPage() {
     const [isEditing, setIsEditing] = useState(false);
     const [newName, setNewName] = useState('');
     const [newPhotoUrl, setNewPhotoUrl] = useState('');
+    const [newColorKey, setNewColorKey] = useState<UserColorKey | null>(null);
 
     const editRequested = useMemo(() => searchParams.get('edit') === '1', [searchParams]);
 
@@ -72,6 +75,7 @@ export default function UserPage() {
         if (!user) return;
         setNewName(userProfile?.displayName || user.displayName || '');
         setNewPhotoUrl((userProfile ? (userProfile.photoURL ?? '') : (user.photoURL ?? '')));
+        setNewColorKey((userProfile?.colorKey ?? null) as UserColorKey | null);
     }, [isEditing, user, userProfile]);
 
     const handleUpdateProfile = async () => {
@@ -84,6 +88,7 @@ export default function UserPage() {
             await UsersService.updateProfile(user.uid, {
                 displayName: newName.trim(),
                 photoURL: newPhotoUrl.trim() || null,
+                colorKey: newColorKey ?? null,
             });
             setIsEditing(false);
             // Clear deep-link param if present
@@ -160,6 +165,31 @@ export default function UserPage() {
                                         spellCheck={false}
                                     />
                                     <p className="text-xs text-muted-foreground">Firebase can store a profile image URL. For uploading images from the app, we’d add Firebase Storage.</p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label>Chart Color</Label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {USER_COLOR_KEYS.map((key) => {
+                                            const isSelected = newColorKey === key;
+                                            return (
+                                                <button
+                                                    key={key}
+                                                    type="button"
+                                                    onClick={() => setNewColorKey(key)}
+                                                    aria-label={`Select color ${key}`}
+                                                    aria-pressed={isSelected}
+                                                    className={
+                                                        isSelected
+                                                            ? 'h-10 w-10 rounded-full border-2 border-ring ring-2 ring-ring/30'
+                                                            : 'h-10 w-10 rounded-full border border-border/70'
+                                                    }
+                                                    style={{ backgroundColor: userColorKeyToCss(key) }}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">Used for your Fear Fingerprint + review highlights.</p>
                                 </div>
 
                                 <Button onClick={handleUpdateProfile} className="w-full">Save Changes</Button>

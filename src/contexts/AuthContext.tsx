@@ -9,6 +9,7 @@ import {
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
 import type { UserProfile } from '@/types';
+import { UsersService } from '@/services/users';
 
 const ALLOWED_EMAILS = [
     "robert.e.oconnell@gmail.com",
@@ -64,6 +65,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     await setDoc(userRef, newProfile);
                     setUserProfile(newProfile);
                 }
+
+                // Assign a stable, unique colorKey for this user (once)
+                // so charts can stay consistent and avoid collisions.
+                await UsersService.ensureColorKey(currentUser.uid);
 
                 // Keep profile in sync in real-time (e.g., after Edit Profile)
                 if (profileUnsubscribe) profileUnsubscribe();

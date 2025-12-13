@@ -19,6 +19,8 @@ import type { UserProfile } from '@/types';
 import { UserBadge } from '@/components/UserBadge';
 import { FearFingerprint } from '@/components/FearFingerprint';
 import { getFunLabel, RATING_KEYS } from '@/lib/rating-utils';
+import { getUserChartColor } from '@/lib/user-colors';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 import { ChevronDown } from 'lucide-react';
 
@@ -303,23 +305,40 @@ export default function MoviePage() {
                                     </CardHeader>
                                     <CardContent>
                                         <FearFingerprint
-                                            datasets={viewings.map((v, i) => {
-                                                const name = userProfiles[v.userId]?.displayName || `User ${v.userId.slice(0, 3)}`;
+                                            datasets={viewings.map((v) => {
+                                                const profile = userProfiles[v.userId];
+                                                const name = profile?.displayName || `User ${v.userId.slice(0, 3)}`;
                                                 return {
                                                     label: name,
                                                     ratings: v.ratings,
-                                                    color: ['#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#3b82f6'][i % 5]
+                                                    color: getUserChartColor({ uid: v.userId, colorKey: profile?.colorKey })
                                                 };
                                             })}
                                             height={300}
+                                            showLegend={false}
                                         />
+
                                         <div className="flex flex-wrap gap-2 justify-center mt-4">
-                                            {viewings.map((v, i) => {
-                                                const color = ['#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#3b82f6'][i % 5];
-                                                const name = userProfiles[v.userId]?.displayName || `User ${v.userId.slice(0, 3)}`;
+                                            {viewings.map((v) => {
+                                                const profile = userProfiles[v.userId];
+                                                const color = getUserChartColor({ uid: v.userId, colorKey: profile?.colorKey });
+                                                const name = profile?.displayName || `User ${v.userId.slice(0, 3)}`;
+                                                const photoURL = profile?.photoURL || '';
+
                                                 return (
-                                                    <div key={v.id} className="flex items-center gap-1.5 text-xs bg-secondary/30 px-2 py-1 rounded-full">
-                                                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                                                    <div
+                                                        key={v.id}
+                                                        className="flex items-center gap-2 text-xs bg-secondary/30 px-2 py-1 rounded-full"
+                                                    >
+                                                        <Avatar className="h-5 w-5 border" style={{ borderColor: color }}>
+                                                            <AvatarImage src={photoURL} alt={name} />
+                                                            <AvatarFallback
+                                                                className="text-[10px]"
+                                                                style={{ backgroundColor: color, color: 'hsl(var(--primary-foreground))' }}
+                                                            >
+                                                                {name?.[0] || '?'}
+                                                            </AvatarFallback>
+                                                        </Avatar>
                                                         <span className="font-medium">{name}</span>
                                                     </div>
                                                 );
@@ -351,7 +370,7 @@ export default function MoviePage() {
                                                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
                                                     <div className="font-bold font-mono text-base text-primary shrink-0">{v.watchedAt}</div>
                                                     <span className="text-sm text-muted-foreground flex items-center gap-1 min-w-0">
-                                                        <span className="shrink-0">by</span> <UserBadge userId={v.userId} className="text-foreground min-w-0" />
+                                                        <span className="shrink-0">by</span> <UserBadge userId={v.userId} showColorDot className="text-foreground min-w-0" />
                                                     </span>
                                                 </div>
                                                 <div className="text-xs text-muted-foreground truncate">
@@ -405,7 +424,7 @@ export default function MoviePage() {
                                                         {/* Chart on top, wider */}
                                                         <div className="w-full h-64 sm:h-72 bg-background/20 rounded-lg p-2">
                                                             <FearFingerprint
-                                                                datasets={[{ label: 'Rating', ratings: v.ratings, color: '#a855f7' }]}
+                                                                datasets={[{ label: 'Rating', ratings: v.ratings, color: 'hsl(var(--chart-1))' }]}
                                                                 height={240}
                                                                 showLegend={false}
                                                             />

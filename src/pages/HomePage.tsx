@@ -29,7 +29,8 @@ export default function HomePage() {
 
                 // Merge into movies
                 const mergedMovies = moviesData.map(m => {
-                    const stats = ratingsMap[m.tmdbId];
+                    const statsKey = m.mediaType === 'tv' ? `tv_${m.tmdbId}` : m.tmdbId;
+                    const stats = ratingsMap[statsKey];
                     const computedAverage = stats ? stats.total / stats.count : undefined;
 
                     // If we have a computed average but it's missing in the doc, we could update it (optional background)

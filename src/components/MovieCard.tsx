@@ -18,8 +18,10 @@ export function MovieCard({ movie }: MovieCardProps) {
 
     // For now, let's just make it look cool with the overall score.
 
+    const href = movie.mediaType === 'tv' ? `/tv/${movie.tmdbId}` : `/movie/${movie.tmdbId}`;
+
     return (
-        <Link to={`/movie/${movie.tmdbId}`} className="block h-full group">
+        <Link to={href} className="block h-full group">
             <Card className="overflow-hidden border-0 bg-transparent h-full flex flex-col relative text-left transition-all duration-300 hover:-translate-y-1">
                 {/* Poster with Glow */}
                 <div className="relative aspect-[2/3] w-full rounded-xl overflow-hidden shadow-sm transition-all duration-300 group-hover:shadow-[0_0_20px_rgba(139,92,246,0.3)]">
