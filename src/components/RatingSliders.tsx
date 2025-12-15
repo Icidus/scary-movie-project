@@ -2,9 +2,10 @@ import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import type { Ratings } from "@/types";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus, Info } from "lucide-react";
 
 import { RATING_KEYS, getFunLabel } from "@/lib/rating-utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface RatingSlidersProps {
     ratings: Ratings;
@@ -35,6 +36,27 @@ export function RatingSliders({ ratings, onChange, readOnly = false }: RatingSli
                                 <div className="flex justify-between items-center">
                                     <Label htmlFor={key} className="text-base font-bold flex items-center gap-2">
                                         {label}
+                                        {(() => {
+                                            const desc = RATING_KEYS.find(r => r.key === key)?.description;
+                                            if (!desc) return null;
+                                            return (
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <button
+                                                            type="button"
+                                                            className="inline-flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                                            aria-label={`What does ${label} mean?`}
+                                                        >
+                                                            <Info className="h-4 w-4" />
+                                                        </button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent align="start" className="max-w-[18rem]">
+                                                        <div className="text-sm font-semibold">{label}</div>
+                                                        <div className="mt-1 text-sm text-muted-foreground leading-snug">{desc}</div>
+                                                    </PopoverContent>
+                                                </Popover>
+                                            );
+                                        })()}
                                     </Label>
                                     <div className="flex items-center gap-2">
                                         <span className="sr-only">{label} rating</span>

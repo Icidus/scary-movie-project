@@ -8,6 +8,7 @@ export interface TMDBMovie {
     title?: string; // Movies have title
     name?: string; // TV shows have name
     media_type?: 'movie' | 'tv';
+    genre_ids?: number[];
     release_date?: string;
     first_air_date?: string; // TV
     poster_path: string | null;
@@ -121,6 +122,32 @@ export async function getSeasonDetails(tvId: string, seasonNumber: number): Prom
     } catch (error) {
         console.error("Error fetching Season details", error);
         return null;
+    }
+}
+
+export async function getMovieRecommendationsById(id: string, page: number = 1): Promise<TMDBMovie[]> {
+    if (!TMDB_API_KEY) return [];
+    try {
+        const res = await fetch(`${BASE_URL}/movie/${id}/recommendations?api_key=${TMDB_API_KEY}&page=${page}`);
+        if (!res.ok) return [];
+        const data = await res.json();
+        return (data.results || []).map((r: any) => ({ ...r, media_type: 'movie' }));
+    } catch (error) {
+        console.error('Error fetching movie recommendations', error);
+        return [];
+    }
+}
+
+export async function getTVRecommendationsById(id: string, page: number = 1): Promise<TMDBMovie[]> {
+    if (!TMDB_API_KEY) return [];
+    try {
+        const res = await fetch(`${BASE_URL}/tv/${id}/recommendations?api_key=${TMDB_API_KEY}&page=${page}`);
+        if (!res.ok) return [];
+        const data = await res.json();
+        return (data.results || []).map((r: any) => ({ ...r, media_type: 'tv', title: r.name, release_date: r.first_air_date }));
+    } catch (error) {
+        console.error('Error fetching tv recommendations', error);
+        return [];
     }
 }
 

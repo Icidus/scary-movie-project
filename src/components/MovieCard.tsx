@@ -35,7 +35,18 @@ export function MovieCard({ movie }: MovieCardProps) {
                     {/* Hover Overlay */}
                     <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-300" />
 
-                    {/* Rating Badge (Always Visible, "Evened Out") */}
+                    {/* Score Badges */}
+                    {typeof movie.enjoymentAverage === 'number' && (
+                        <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-md border border-white/10 px-2 py-1 rounded-lg flex items-center gap-1.5 shadow-lg">
+                            <span className="text-xs">⭐</span>
+                            <span className={`font-black text-sm ${(movie.enjoymentAverage || 0) >= 8 ? 'text-red-400' :
+                                (movie.enjoymentAverage || 0) >= 6 ? 'text-purple-400' : 'text-muted-foreground'
+                                }`}>
+                                {movie.enjoymentAverage.toFixed(1)}
+                            </span>
+                        </div>
+                    )}
+
                     <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md border border-white/10 px-2 py-1 rounded-lg flex items-center gap-1.5 shadow-lg">
                         <span className="text-xs">👻</span>
                         <span className={`font-black text-sm ${(movie.overallAverage || 0) >= 8 ? 'text-red-400' :

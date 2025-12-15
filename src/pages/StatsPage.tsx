@@ -8,6 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { RATING_KEYS } from '@/lib/rating-utils';
+import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { ChevronDown } from 'lucide-react';
 
 type RankedRow = {
     id: string;
@@ -177,81 +185,95 @@ export default function StatsPage() {
         return { movieRows, tvRows, episodeRows };
     }, [moviesById, viewings]);
 
-    const renderRankings = (rows: RankedRow[]) => {
+    function Rankings({ rows }: { rows: RankedRow[] }) {
+        const [metricKey, setMetricKey] = useState<(typeof RATING_KEYS)[number]['key']>(RATING_KEYS[0].key);
+        const metricLabel = RATING_KEYS.find(r => r.key === metricKey)?.label ?? 'Rating';
+
+        const sorted = useMemo(() => {
+            return [...rows]
+                .filter(r => r.count > 0)
+                .sort((a, b) => b.averages[metricKey] - a.averages[metricKey])
+                .slice(0, 10);
+        }, [rows, metricKey]);
+
         return (
-            <Tabs defaultValue={RATING_KEYS[0].key} className="w-full">
-                <div className="-mx-4 px-4 overflow-x-auto">
-                    <TabsList className="w-max min-w-full justify-start">
-                        {RATING_KEYS.map(({ key, label }) => (
-                            <TabsTrigger key={key} value={key} className="shrink-0 text-xs sm:text-sm">
-                                {label}
-                            </TabsTrigger>
-                        ))}
-                    </TabsList>
+            <div className="w-full">
+                <div className="flex items-center justify-between gap-3">
+                    <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Category</div>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" className="gap-2">
+                                <span className="truncate max-w-[14rem]">{metricLabel}</span>
+                                <ChevronDown className="h-4 w-4 opacity-60" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="max-h-[60vh] overflow-y-auto">
+                            {RATING_KEYS.map(({ key, label }) => (
+                                <DropdownMenuItem
+                                    key={key}
+                                    onSelect={() => setMetricKey(key)}
+                                    className={key === metricKey ? 'font-semibold' : undefined}
+                                >
+                                    {label}
+                                </DropdownMenuItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
 
-                {RATING_KEYS.map(({ key }) => {
-                    const sorted = [...rows]
-                        .filter(r => r.count > 0)
-                        .sort((a, b) => b.averages[key] - a.averages[key])
-                        .slice(0, 10);
+                <div className="mt-4">
+                    {sorted.length === 0 ? (
+                        <p className="text-muted-foreground">No logs yet.</p>
+                    ) : (
+                        <div className="grid gap-3">
+                            {sorted.map((r, idx) => {
+                                const content = (
+                                    <Card className="bg-card/50 overflow-hidden">
+                                        <CardContent className="p-3 grid grid-cols-[2.5rem_2.75rem_minmax(0,1fr)_auto] items-center gap-3">
+                                            <div className="text-center font-mono text-sm text-muted-foreground whitespace-nowrap">#{idx + 1}</div>
 
-                    return (
-                        <TabsContent key={key} value={key} className="mt-4">
-                            {sorted.length === 0 ? (
-                                <p className="text-muted-foreground">No logs yet.</p>
-                            ) : (
-                                <div className="grid gap-3">
-                                    {sorted.map((r, idx) => {
-                                        const content = (
-                                            <Card className="bg-card/50 overflow-hidden">
-                                                <CardContent className="p-3 flex items-center gap-3 min-w-0">
-                                                    <div className="w-10 text-center font-mono text-sm text-muted-foreground">#{idx + 1}</div>
+                                            <div className="h-14 w-11 rounded bg-muted overflow-hidden">
+                                                {r.posterPath ? (
+                                                    <img
+                                                        src={getPosterUrl(r.posterPath)}
+                                                        alt={r.title}
+                                                        className="h-full w-full object-cover"
+                                                    />
+                                                ) : null}
+                                            </div>
 
-                                                    <div className="h-14 w-10 rounded bg-muted overflow-hidden shrink-0">
-                                                        {r.posterPath ? (
-                                                            <img
-                                                                src={getPosterUrl(r.posterPath)}
-                                                                alt={r.title}
-                                                                className="h-full w-full object-cover"
-                                                            />
-                                                        ) : null}
-                                                    </div>
+                                            <div className="min-w-0">
+                                                <div className="font-bold leading-tight line-clamp-2 break-words">{r.title}</div>
+                                                {r.subtitle && <div className="text-xs text-muted-foreground leading-snug line-clamp-2 break-words">{r.subtitle}</div>}
+                                                <div className="mt-1 text-xs text-muted-foreground">
+                                                    <Badge variant="outline" className="text-[10px]">{r.count} log{r.count === 1 ? '' : 's'}</Badge>
+                                                </div>
+                                            </div>
 
-                                                    <div className="min-w-0 flex-1">
-                                                        <div className="font-bold truncate">{r.title}</div>
-                                                        {r.subtitle && <div className="text-xs text-muted-foreground truncate max-w-full">{r.subtitle}</div>}
-                                                        <div className="mt-1 text-xs text-muted-foreground">
-                                                            <Badge variant="outline" className="text-[10px]">{r.count} log{r.count === 1 ? '' : 's'}</Badge>
-                                                        </div>
-                                                    </div>
+                                            <div className="text-right whitespace-nowrap">
+                                                <div className="font-mono font-black text-xl text-primary leading-none">
+                                                    {r.averages[metricKey].toFixed(1)}
+                                                </div>
+                                                <div className="text-[10px] text-muted-foreground">avg</div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                );
 
-                                                    <div className="text-right shrink-0">
-                                                        <div className="font-mono font-black text-xl text-primary leading-none">
-                                                            {r.averages[key].toFixed(1)}
-                                                        </div>
-                                                        <div className="text-[10px] text-muted-foreground">avg</div>
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
-                                        );
-
-                                        return r.link ? (
-                                            <Link key={r.id} to={r.link} className="block">
-                                                {content}
-                                            </Link>
-                                        ) : (
-                                            <div key={r.id}>{content}</div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </TabsContent>
-                    );
-                })}
-            </Tabs>
+                                return r.link ? (
+                                    <Link key={r.id} to={r.link} className="block">
+                                        {content}
+                                    </Link>
+                                ) : (
+                                    <div key={r.id}>{content}</div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            </div>
         );
-    };
+    }
 
     if (loading) {
         return <div className="p-8 text-center text-muted-foreground">Loading stats…</div>;
@@ -276,7 +298,7 @@ export default function StatsPage() {
                         <CardHeader>
                             <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">Movie Rankings</CardTitle>
                         </CardHeader>
-                        <CardContent>{renderRankings(grouped.movieRows)}</CardContent>
+                        <CardContent><Rankings rows={grouped.movieRows} /></CardContent>
                     </Card>
                 </TabsContent>
 
@@ -285,7 +307,7 @@ export default function StatsPage() {
                         <CardHeader>
                             <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">TV Show Rankings (Cumulative)</CardTitle>
                         </CardHeader>
-                        <CardContent>{renderRankings(grouped.tvRows)}</CardContent>
+                        <CardContent><Rankings rows={grouped.tvRows} /></CardContent>
                     </Card>
                 </TabsContent>
 
@@ -294,7 +316,7 @@ export default function StatsPage() {
                         <CardHeader>
                             <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">Episode Rankings (Per Episode)</CardTitle>
                         </CardHeader>
-                        <CardContent>{renderRankings(grouped.episodeRows)}</CardContent>
+                        <CardContent><Rankings rows={grouped.episodeRows} /></CardContent>
                     </Card>
                 </TabsContent>
             </Tabs>

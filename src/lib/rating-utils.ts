@@ -1,16 +1,56 @@
 import type { Ratings } from "@/types";
 
-export const RATING_KEYS: { key: keyof Ratings; label: string; color?: string }[] = [
-    { key: 'overall', label: '😱 Overall Scare' },
-    { key: 'enjoyment', label: '🍿 Overall Enjoyment' },
-    { key: 'jump', label: '💥 Jump Scares' },
-    { key: 'dread', label: '😬 Dread / Tension' },
-    { key: 'gore', label: '🩸 Gore / Visceral Stuff' },
-    { key: 'atmosphere', label: '🌫️ Atmosphere' },
-    { key: 'story', label: '📚 Story' },
-    { key: 'rewatch', label: '🔁 Rewatchability' },
-    { key: 'wtf', label: '🤯 WTF Factor' },
-    { key: 'cozy', label: '✨ Vibe / Fun Factor' },
+export const RATING_KEYS: { key: keyof Ratings; label: string; description?: string; color?: string }[] = [
+    {
+        key: 'enjoyment',
+        label: '⭐ Overall Rating',
+        description: 'Your overall “did I like it?” score, regardless of how scary it was.'
+    },
+    {
+        key: 'overall',
+        label: '😱 Scare Level',
+        description: 'How scary it felt overall (intensity, fear, lingering unease).'
+    },
+    {
+        key: 'dread',
+        label: '😬 Dread / Tension',
+        description: 'Slow-burn tension, suspense, and anxiety.'
+    },
+    {
+        key: 'atmosphere',
+        label: '🌫️ Atmosphere',
+        description: 'Mood + ambience (sound, lighting, creepiness of the world).'
+    },
+    {
+        key: 'jump',
+        label: '💥 Jump Scares',
+        description: 'How many/strong the jump scares were.'
+    },
+    {
+        key: 'gore',
+        label: '🩸 Gore / Visceral',
+        description: 'Graphic violence, blood, and body-horror intensity.'
+    },
+    {
+        key: 'story',
+        label: '📚 Story',
+        description: 'Plot/writing quality and how well it holds together.'
+    },
+    {
+        key: 'wtf',
+        label: '🤯 WTF Factor',
+        description: 'How weird, surprising, or bonkers it gets.'
+    },
+    {
+        key: 'cozy',
+        label: '✨ Vibe / Fun Factor',
+        description: 'Comfort/fun vibe—watch-with-friends energy vs. harsh/bleak.'
+    },
+    {
+        key: 'rewatch',
+        label: '🔁 Rewatchability',
+        description: 'How likely you are to watch it again.'
+    },
 ];
 
 export function getFunLabel(key: keyof Ratings, value: number): string {

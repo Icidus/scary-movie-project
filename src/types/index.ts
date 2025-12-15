@@ -27,6 +27,7 @@ export interface Movie {
     tags?: string[];
     // derived fields for UI
     overallAverage?: number;
+    enjoymentAverage?: number;
     // TV Specific
     mediaType?: 'movie' | 'tv';
     numberOfSeasons?: number;
