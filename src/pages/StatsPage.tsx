@@ -180,13 +180,15 @@ export default function StatsPage() {
     const renderRankings = (rows: RankedRow[]) => {
         return (
             <Tabs defaultValue={RATING_KEYS[0].key} className="w-full">
-                <TabsList className="w-full justify-start overflow-x-auto">
-                    {RATING_KEYS.map(({ key, label }) => (
-                        <TabsTrigger key={key} value={key} className="shrink-0">
-                            {label}
-                        </TabsTrigger>
-                    ))}
-                </TabsList>
+                <div className="-mx-4 px-4 overflow-x-auto">
+                    <TabsList className="w-max min-w-full justify-start">
+                        {RATING_KEYS.map(({ key, label }) => (
+                            <TabsTrigger key={key} value={key} className="shrink-0 text-xs sm:text-sm">
+                                {label}
+                            </TabsTrigger>
+                        ))}
+                    </TabsList>
+                </div>
 
                 {RATING_KEYS.map(({ key }) => {
                     const sorted = [...rows]
@@ -203,7 +205,7 @@ export default function StatsPage() {
                                     {sorted.map((r, idx) => {
                                         const content = (
                                             <Card className="bg-card/50 overflow-hidden">
-                                                <CardContent className="p-3 flex items-center gap-3">
+                                                <CardContent className="p-3 flex items-center gap-3 min-w-0">
                                                     <div className="w-10 text-center font-mono text-sm text-muted-foreground">#{idx + 1}</div>
 
                                                     <div className="h-14 w-10 rounded bg-muted overflow-hidden shrink-0">
@@ -218,7 +220,7 @@ export default function StatsPage() {
 
                                                     <div className="min-w-0 flex-1">
                                                         <div className="font-bold truncate">{r.title}</div>
-                                                        {r.subtitle && <div className="text-xs text-muted-foreground truncate">{r.subtitle}</div>}
+                                                        {r.subtitle && <div className="text-xs text-muted-foreground truncate max-w-full">{r.subtitle}</div>}
                                                         <div className="mt-1 text-xs text-muted-foreground">
                                                             <Badge variant="outline" className="text-[10px]">{r.count} log{r.count === 1 ? '' : 's'}</Badge>
                                                         </div>
@@ -256,7 +258,7 @@ export default function StatsPage() {
     }
 
     return (
-        <div className="container mx-auto py-8 px-4 space-y-6 max-w-4xl">
+        <div className="container mx-auto py-8 px-4 space-y-6 max-w-4xl overflow-x-hidden">
             <div className="space-y-1">
                 <h1 className="text-3xl font-bold">Stats</h1>
                 <p className="text-sm text-muted-foreground">Rankings based on your family’s logs.</p>
